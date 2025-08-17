@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>ABILITY ROGUELIKE — Skip Ability Draft</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <div id="hud">
+      <div id="hp"></div>
+      <div id="room"></div>
+    </div>
+    <div id="synergyHud">Active Synergies: <span id="activeSynergies">None</span></div>
+    
+    <div style="position:relative; display:inline-block;">
+      <canvas id="c" width="320" height="240"></canvas>
+      <div id="bossBar">
+        <div id="bossName">BOSS</div>
+        <div id="bossHealth">
+          <div id="bossHealthText">100%</div>
+        </div>
+      </div>
+      <div id="statusMessage"></div>
+    </div>
+    
+    <div id="bar"></div>
+    <div class="tip">Move: WASD/Arrows · Cast: Q/W/E/LMB · Pause: P (Auto-aim ON)</div>
+
+<!-- Ability draft -->
+<div id="draft" class="hidden">
+  <div>Choose ability (replaces slot)</div>
+  <div class="choices" id="draftChoices"></div>
+  <div class="skip-btn" id="skipBtn">SKIP</div>
+  <div class="tip" style="margin-top:4px">Synergies: <span id="synergiesText">None</span></div>
+</div>
+
+    <!-- Relic draft -->
+<div id="relicDraft" class="hidden">
+  <div>Choose a Relic</div>
+  <div class="choices" id="relicChoices"></div>
+</div>
+
+    <div id="gameOver" class="hidden">
+      <div style="margin-bottom:8px">Run Over — <span id="finalStats"></span></div>
+      <button class="btn" id="restartBtn">Restart</button>
+    </div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>

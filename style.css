@@ -1,0 +1,293 @@
+/* ABILITY ROGUELITE - COMPACT DRAFT CONTAINERS */
+:root { 
+  --w: 320; 
+  --h: 240; 
+}
+
+html, body { 
+  height: 100%; 
+  margin: 0;
+  background: #000; 
+  color: #fff; 
+  font-family: 'Courier New', monospace;
+  display: grid; 
+  place-items: center; 
+  gap: 8px; 
+  user-select: none;
+  overflow: hidden;
+}
+
+body {
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.wrap { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  gap: 8px;
+}
+
+canvas { 
+  border: 2px solid #fff; 
+  image-rendering: pixelated; 
+  image-rendering: crisp-edges; 
+  background: #111;
+}
+
+#hud { 
+  width: var(--w)px; 
+  display: flex; 
+  justify-content: space-between; 
+  font-size: 12px; 
+  letter-spacing: 0.5px;
+}
+
+#synergyHud { 
+  width: var(--w)px; 
+  font-size: 10px; 
+  text-align: center; 
+  opacity: 0.8; 
+  color: #ff0;
+}
+
+#bar { 
+  width: var(--w)px; 
+  display: flex; 
+  gap: 6px; 
+  margin-top: 6px; 
+  justify-content: center;
+}
+
+.slot {
+  position: relative; 
+  width: 48px; 
+  height: 48px; 
+  border: 2px solid #fff;
+  display: grid; 
+  place-items: center; 
+  cursor: pointer; 
+  background: #000;
+  transition: all 0.2s;
+}
+
+.slot:hover {
+  background: #222;
+  transform: scale(1.05);
+}
+
+.slot.selected { 
+  outline: 2px dashed #fff; 
+  outline-offset: -4px; 
+}
+
+.slot.synergy { 
+  border-color: #ff0; 
+  box-shadow: 0 0 6px #ff0; 
+  animation: pulse 1.5s infinite;
+}
+
+.cd { 
+  position: absolute; 
+  inset: 0; 
+  background: rgba(0, 0, 0, 0.7); 
+  display: grid; 
+  place-items: center; 
+  font-size: 11px; 
+}
+
+.tip { 
+  width: var(--w)px; 
+  opacity: 0.8; 
+  font-size: 11px; 
+  text-align: center; 
+  color: #aaa;
+}
+
+.btn { 
+  border: 2px solid #fff; 
+  padding: 4px 8px; 
+  cursor: pointer; 
+  background: #000; 
+  color: #fff;
+  font-family: monospace;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  background: #222;
+  transform: scale(1.05);
+}
+
+.choices { 
+  display: flex; 
+  gap: 6px; 
+  margin-top: 8px; 
+  flex-wrap: wrap; 
+  justify-content: center;
+}
+
+.hidden { 
+  display: none; 
+}
+
+.keyhint { 
+  position: absolute; 
+  bottom: 2px; 
+  right: 2px; 
+  font-size: 9px; 
+  opacity: 0.6; 
+}
+
+/* SKIP BUTTON STYLES */
+.skip-btn {
+  width: 120px;
+  margin: 10px auto 0;
+  padding: 6px;
+  text-align: center;
+  border: 1px solid #fff;
+  cursor: pointer;
+  background: #222;
+  transition: all 0.2s;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.skip-btn:hover {
+  background: #444;
+  transform: scale(1.05);
+}
+
+/* BOSS HEALTH BAR */
+#bossBar {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 180px;
+  height: 14px;
+  background: #000;
+  border: 1px solid #fff;
+  z-index: 10;
+  display: none;
+}
+
+#bossHealth {
+  height: 100%;
+  background: #fff;
+  width: 100%;
+  transition: width 0.2s;
+}
+
+#bossName {
+  position: absolute;
+  top: -14px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 10px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#bossHealthText {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #000;
+  font-weight: bold;
+}
+
+/* GAME STATUS MESSAGES */
+#statusMessage {
+  position: absolute;
+  top: 25px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 12px;
+  color: #ff0;
+  text-shadow: 0 0 3px #000;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* COMPACT DRAFT CONTAINERS */
+#draft, #relicDraft, #gameOver {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #000;
+  border: 2px solid #fff;
+  padding: 12px;
+  z-index: 30;
+  width: 260px;
+  text-align: center;
+}
+
+#draft > div:first-child,
+#relicDraft > div:first-child {
+  font-size: 13px;
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: #ff0;
+}
+
+#draft .choices, 
+#relicDraft .choices {
+  gap: 6px;
+  margin-top: 8px;
+}
+
+#draft .slot, 
+#relicDraft .slot {
+  width: 40px;
+  height: 40px;
+  border-width: 1px;
+}
+
+#draft .slot > div, 
+#relicDraft .slot > div {
+  font-size: 12px;
+}
+
+#synergiesText {
+  font-size: 10px;
+  display: block;
+  margin-top: 6px;
+  line-height: 1.3;
+  color: #ff0;
+  min-height: 14px;
+}
+
+/* Game over screen */
+#gameOver {
+  padding: 16px;
+  width: 240px;
+}
+
+#finalStats {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #aaa;
+  line-height: 1.4;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% { box-shadow: 0 0 4px #ff0; }
+  50% { box-shadow: 0 0 10px #ff0; }
+  100% { box-shadow: 0 0 4px #ff0; }
+}
