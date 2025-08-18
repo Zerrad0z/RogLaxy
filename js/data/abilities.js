@@ -1,5 +1,6 @@
 // ========================================
 // FILE: js/data/abilities.js
+// Complete abilities data and definitions
 // ========================================
 
 const AbilityIcons = {

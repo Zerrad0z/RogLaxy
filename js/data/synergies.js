@@ -1,5 +1,6 @@
 // ========================================
 // FILE: js/data/synergies.js
+// Complete synergy combinations and system
 // ========================================
 
 const SYNERGIES = {
