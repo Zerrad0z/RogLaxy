@@ -198,14 +198,28 @@ const EnemySpawner = {
     });
   },
   
-  // Spawn a boss enemy
+  // Spawn a boss enemy (Warden, EclipseTwin, or VoidMonarch)
   spawnBoss() {
-    const x = 160;
+    const x = 100;
     const y = 120;
-    const kind = GameState.room === 4 ? 'Warden' : 'EclipseTwin';
+    let kind, bossName;
+    if (GameState.room === 4) {
+      kind = 'Warden';
+      bossName = 'The Warden';
+    } else if (GameState.room === 8) {
+      kind = 'EclipseTwin';
+      bossName = 'Eclipse Twin';
+    } else if (GameState.room === 12) {
+      kind = 'VoidMonarch';
+      bossName = 'Void Monarch';
+    } else {
+      // fallback for other rooms
+      kind = 'Warden';
+      bossName = 'The Warden';
+    }
     const type = EnemyTypes[kind];
     const hp = type.baseHp + type.hpScaling(GameState.room);
-    
+
     GameState.enemies.push({
       x, y,
       r: type.radius,
@@ -217,28 +231,49 @@ const EnemySpawner = {
       kind,
       spd: type.baseSpeed,
       phase: 0,
-      atkT: 90
+      atkT: 90,
+      attackT: 0,
+      isBoss: true
     });
-    
+
     // Show boss UI
     Helpers.$('#bossBar').style.display = 'block';
-    Helpers.$('#bossName').textContent = kind === 'Warden' ? 'The Warden' : 'Eclipse Twin';
+    Helpers.$('#bossName').textContent = bossName;
   },
-  
+
+  // --- FINAL BOSS SPAWNER (for direct call, not used in spawnWave) ---
+  spawnVoidMonarch() {
+    const type = EnemyTypes.VoidMonarch;
+    const x = 160, y = 80;
+    const hp = type.baseHp + type.hpScaling(GameState.room);
+    GameState.enemies.push({
+      x, y,
+      r: type.radius,
+      hp,
+      maxHp: hp,
+      kind: 'VoidMonarch',
+      spd: type.baseSpeed,
+      phase: 1,
+      attackT: 0,
+      isBoss: true
+    });
+    Helpers.$('#bossBar').style.display = 'block';
+    Helpers.$('#bossName').textContent = 'Void Monarch';
+  },
+
   // Spawn a wave of enemies for the current room
   spawnWave() {
-    const isBoss = (GameState.room === 4 || GameState.room === 8);
-    
-    if (isBoss) {
+    // Boss rooms: 4, 8, 12
+    if (GameState.room === 4 || GameState.room === 8 || GameState.room === 12) {
       this.spawnBoss();
       return;
     }
-    
+
     const enemyCount = 3 + GameState.room;
-    
+
     for (let i = 0; i < enemyCount; i++) {
       const roll = RNG.range(0, 100);
-      
+
       if (GameState.room <= 2) {
         // Early game: mostly grunts and archers
         if (roll < 70) this.spawnGrunt();
@@ -262,12 +297,24 @@ const EnemySpawner = {
         else if (roll < 90) this.spawnSplitter();
         else this.spawnTank();
       }
-      else {
+      else if (GameState.room <= 8) {
         // Late game: harder enemies
         if (roll < 20) this.spawnDasher();
         else if (roll < 40) this.spawnOrbitMage();
         else if (roll < 60) this.spawnSplitter();
         else if (roll < 80) this.spawnTank();
+        else this.spawnSniper();
+      }
+      else if (GameState.room <= 11) {
+        // Endgame: new enemies
+        if (roll < 15) this.spawnPhantom();
+        else if (roll < 30) this.spawnHealer();
+        else if (roll < 45) this.spawnShielder();
+        else if (roll < 60) this.spawnTrickster();
+        else if (roll < 75) this.spawnVoidling();
+        else if (roll < 80) this.spawnDasher();
+        else if (roll < 85) this.spawnSplitter();
+        else if (roll < 90) this.spawnTank();
         else this.spawnSniper();
       }
     }
@@ -318,8 +365,28 @@ const EnemyAI = {
         this.minionAI(enemy, player);
         break;
       case 'Warden':
+        this.bossAI(enemy, player);
+        break;
       case 'EclipseTwin':
         this.bossAI(enemy, player);
+        break;
+      case 'VoidMonarch':
+        this.voidMonarchAI(enemy, player);
+        break;
+      case 'phantom':
+        this.phantomAI(enemy, player);
+        break;
+      case 'healer':
+        this.healerAI(enemy, player);
+        break;
+      case 'shielder':
+        this.shielderAI(enemy, player);
+        break;
+      case 'trickster':
+        this.tricksterAI(enemy, player);
+        break;
+      case 'voidling':
+        this.voidlingAI(enemy, player);
         break;
     }
     
@@ -334,6 +401,7 @@ const EnemyAI = {
     const speedMul = enemy.slowT > 0 ? enemy.slowMul : 1;
     enemy.x += Math.cos(angle) * enemy.spd * speedMul;
     enemy.y += Math.sin(angle) * enemy.spd * speedMul;
+    clampToArena(enemy);
   },
   
   // Archer AI: Maintain distance and shoot
@@ -360,6 +428,7 @@ const EnemyAI = {
       });
       enemy.shootT = RNG.range(type.shootCooldown.min, type.shootCooldown.max);
     }
+    clampToArena(enemy);
   },
   
   // Bomber AI: Chase and explode
@@ -374,6 +443,7 @@ const EnemyAI = {
       const idx = GameState.enemies.indexOf(enemy);
       if (idx >= 0) GameState.enemies.splice(idx, 1);
     }
+    clampToArena(enemy);
   },
   
   // Dasher AI: Periodic dash attacks
@@ -398,6 +468,7 @@ const EnemyAI = {
       enemy.x += Math.cos(angle) * enemy.spd;
       enemy.y += Math.sin(angle) * enemy.spd;
     }
+    clampToArena(enemy);
   },
   
   // Orbit Mage AI: Circle player and shoot
@@ -422,6 +493,7 @@ const EnemyAI = {
       });
       enemy.shootT = type.shootCooldown;
     }
+    clampToArena(enemy);
   },
   
   // Splitter AI: Chase (splits on death handled elsewhere)
@@ -430,6 +502,7 @@ const EnemyAI = {
     const speedMul = enemy.slowT > 0 ? enemy.slowMul : 1;
     enemy.x += Math.cos(angle) * enemy.spd * speedMul;
     enemy.y += Math.sin(angle) * enemy.spd * speedMul;
+    clampToArena(enemy);
   },
   
   // Tank AI: Slow but steady chase
@@ -437,6 +510,7 @@ const EnemyAI = {
     const angle = Helpers.angleTo(enemy.x, enemy.y, player.x, player.y);
     enemy.x += Math.cos(angle) * enemy.spd;
     enemy.y += Math.sin(angle) * enemy.spd;
+    clampToArena(enemy);
   },
   
   // Sniper AI: Long range charged shots
@@ -466,6 +540,7 @@ const EnemyAI = {
         enemy.charging = false;
       }
     }
+    clampToArena(enemy);
   },
   
   // Minion AI: Fast swarm behavior
@@ -484,6 +559,7 @@ const EnemyAI = {
     } else if (enemy.kind === 'EclipseTwin') {
       this.eclipseTwinAI(enemy, player);
     }
+    clampToArena(enemy);
   },
   
   // Warden boss specific AI
@@ -510,6 +586,7 @@ const EnemyAI = {
     const angle = Helpers.angleTo(enemy.x, enemy.y, player.x, player.y);
     enemy.x += Math.cos(angle) * enemy.spd * 0.7;
     enemy.y += Math.sin(angle) * enemy.spd * 0.7;
+    clampToArena(enemy);
   },
   
   // Eclipse Twin boss specific AI
@@ -531,13 +608,199 @@ const EnemyAI = {
           life: 130
         });
       }
+      clampToArena(enemy);
     }
     
     // Orbit around center
     const orbitAngle = (GameState.time / 600) + (enemy.phase * 2.1);
     enemy.x = 160 + Math.cos(orbitAngle) * type.orbitRadius;
     enemy.y = 120 + Math.sin(orbitAngle) * 30;
-  }
+  },
+  
+  // --- NEW ENEMY AI ---
+  phantomAI(enemy, player) {
+    // Fades in/out, moves fast while invisible
+    const type = EnemyTypes.phantom;
+    enemy.fadeT = (enemy.fadeT || 0) + 1;
+    if (!enemy.invisible && enemy.fadeT > type.fadeInterval) {
+      enemy.invisible = true;
+      enemy.fadeT = 0;
+    } else if (enemy.invisible && enemy.fadeT > type.invisibleDuration) {
+      enemy.invisible = false;
+      enemy.fadeT = 0;
+    }
+    let speed = type.baseSpeed;
+    if (enemy.invisible) speed *= type.invisibleSpeedBoost;
+    // Move toward player
+    const dx = player.x - enemy.x, dy = player.y - enemy.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 1) {
+      enemy.x += (dx / dist) * speed;
+      enemy.y += (dy / dist) * speed;
+    }
+    clampToArena(enemy);
+  },
+
+  healerAI(enemy, player) {
+    // Heals nearby enemies
+    const type = EnemyTypes.healer;
+    enemy.healT = (enemy.healT || 0) + 1;
+    if (enemy.healT > type.healCooldown) {
+      enemy.healT = 0;
+      // Heal nearby enemies
+      for (const e of GameState.enemies) {
+        if (e !== enemy && Helpers.dist(e.x, e.y, enemy.x, enemy.y) < type.healRadius && e.hp < e.maxHp) {
+          e.hp = Math.min(e.maxHp, e.hp + type.healAmount);
+        }
+      }
+    }
+    // Stay near other enemies, avoid player
+    let tx = 0, ty = 0, count = 0;
+    for (const e of GameState.enemies) {
+      if (e !== enemy && Helpers.dist(e.x, e.y, enemy.x, enemy.y) < type.safeDistance) {
+        tx += e.x; ty += e.y; count++;
+      }
+    }
+    if (count > 0) {
+      tx /= count; ty /= count;
+      const dx = tx - enemy.x, dy = ty - enemy.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 1) {
+        enemy.x += (dx / dist) * type.baseSpeed;
+        enemy.y += (dy / dist) * type.baseSpeed;
+      }
+    }
+    clampToArena(enemy);
+  },
+
+  shielderAI(enemy, player) {
+    // Shields nearby enemies
+    const type = EnemyTypes.shielder;
+    enemy.shieldT = (enemy.shieldT || 0) + 1;
+    if (enemy.shieldT > type.shieldCooldown) {
+      enemy.shieldT = 0;
+      for (const e of GameState.enemies) {
+        if (e !== enemy && Helpers.dist(e.x, e.y, enemy.x, enemy.y) < type.shieldRadius) {
+          e.shielded = true;
+          e.shieldTimer = type.shieldDuration;
+        }
+      }
+    }
+    // Move toward player slowly
+    const dx = player.x - enemy.x, dy = player.y - enemy.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 1) {
+      enemy.x += (dx / dist) * type.baseSpeed * 0.5;
+      enemy.y += (dy / dist) * type.baseSpeed * 0.5;
+    }
+    clampToArena(enemy);
+  },
+
+  tricksterAI(enemy, player) {
+    // Teleports and creates clones
+    const type = EnemyTypes.trickster;
+    enemy.teleportT = (enemy.teleportT || 0) + 1;
+    if (enemy.teleportT > type.teleportCooldown) {
+      enemy.teleportT = 0;
+      // Teleport to random location near player
+      const angle = Math.random() * Math.PI * 2;
+      const dist = type.teleportRange;
+      enemy.x = player.x + Math.cos(angle) * dist;
+      enemy.y = player.y + Math.sin(angle) * dist;
+      // Spawn clones
+      enemy.clones = [];
+      for (let i = 0; i < type.cloneCount; i++) {
+        const ca = angle + (Math.PI * 2 * i / type.cloneCount);
+        enemy.clones.push({
+          x: enemy.x + Math.cos(ca) * 12,
+          y: enemy.y + Math.sin(ca) * 12,
+          r: enemy.r,
+          hp: type.cloneHp,
+          kind: 'tricksterClone',
+          spd: type.baseSpeed
+        });
+      }
+    }
+    // Move randomly
+    enemy.x += (Math.random() - 0.5) * type.baseSpeed;
+    enemy.y += (Math.random() - 0.5) * type.baseSpeed;
+    clampToArena(enemy);
+  },
+
+  voidlingAI(enemy, player) {
+    // Pulls player and bursts
+    const type = EnemyTypes.voidling;
+    enemy.pullT = (enemy.pullT || 0) + 1;
+    if (enemy.pullT > type.voidBurstCooldown) {
+      enemy.pullT = 0;
+      // Burst effect (could spawn projectiles or particles)
+    }
+    // Pull player if close
+    const dx = player.x - enemy.x, dy = player.y - enemy.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < type.pullRadius) {
+      player.x -= (dx / dist) * type.pullStrength;
+      player.y -= (dy / dist) * type.pullStrength;
+    }
+    // Move toward player
+    if (dist > 1) {
+      enemy.x += (dx / dist) * type.baseSpeed;
+      enemy.y += (dy / dist) * type.baseSpeed;
+    }
+    clampToArena(enemy);
+  },
+
+  // --- FINAL BOSS AI ---
+  voidMonarchAI(enemy, player) {
+    const type = EnemyTypes.VoidMonarch;
+    // Phase transitions
+    if (enemy.hp < enemy.maxHp * 0.33) enemy.phase = 3;
+    else if (enemy.hp < enemy.maxHp * 0.66) enemy.phase = 2;
+    else enemy.phase = 1;
+
+    // Attack pattern
+    enemy.attackT = (enemy.attackT || 0) + 1;
+    let cooldown = type.attackCooldown;
+    if (enemy.phase === 2) cooldown = 40;
+    if (enemy.phase === 3) cooldown = 30;
+
+    if (enemy.attackT > cooldown) {
+      enemy.attackT = 0;
+      // Radial void burst
+      for (let i = 0; i < type.projectileCount; i++) {
+        const angle = (i / type.projectileCount) * Math.PI * 2;
+        GameState.ebullets.push({
+          x: enemy.x,
+          y: enemy.y,
+          vx: Math.cos(angle) * type.projectileSpeed,
+          vy: Math.sin(angle) * type.projectileSpeed,
+          life: 120
+        });
+      }
+      // Phase 2+: fire a homing orb at player
+      if (enemy.phase >= 2) {
+        const angle = Helpers.angleTo(enemy.x, enemy.y, player.x, player.y);
+        GameState.ebullets.push({
+          x: enemy.x,
+          y: enemy.y,
+          vx: Math.cos(angle) * type.projectileSpeed * 0.7,
+          vy: Math.sin(angle) * type.projectileSpeed * 0.7,
+          life: 100,
+          homing: true
+        });
+      }
+    }
+
+    // Move toward player
+    const dx = player.x - enemy.x, dy = player.y - enemy.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 1) {
+      enemy.x += (dx / dist) * type.baseSpeed * (1 + 0.2 * enemy.phase);
+      enemy.y += (dy / dist) * type.baseSpeed * (1 + 0.2 * enemy.phase);
+    }
+    clampToArena(enemy);
+  },
+
 };
 
 const EnemyLogic = {
@@ -672,7 +935,7 @@ const EnemyLogic = {
     }
     
     // Boss death handling
-    if (enemy.kind === 'Warden' || enemy.kind === 'EclipseTwin') {
+    if (enemy.kind === 'Warden' || enemy.kind === 'EclipseTwin' || enemy.kind === 'VoidMonarch') {
       Helpers.$('#bossBar').style.display = 'none';
     }
     
@@ -730,6 +993,11 @@ const EnemyLogic = {
     };
   }
 };
+
+function clampToArena(enemy) {
+  enemy.x = Helpers.clamp(enemy.x, enemy.r, 320 - enemy.r);
+  enemy.y = Helpers.clamp(enemy.y, enemy.r, 240 - enemy.r);
+}
 
 // Export for use in other modules (if using module system)
 if (typeof module !== 'undefined' && module.exports) {
