@@ -22,6 +22,89 @@ body {
   box-sizing: border-box;
 }
 
+/* CRT Scanline Effect */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.03) 0px,
+    rgba(255,255,255,0.03) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* MAIN MENU STYLES */
+.menu-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  background: #000;
+  border: 2px solid #fff;
+  padding: 30px 40px;
+  animation: fadeIn 0.5s;
+}
+
+.game-title {
+  font-size: 36px;
+  margin: 0;
+  color: #fff;
+  letter-spacing: 4px;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.menu-btn {
+  width: 160px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+  background: #000;
+  color: #fff;
+  border: 2px solid #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.menu-btn:hover:not(:disabled) {
+  background: #222;
+  transform: scale(1.05);
+}
+
+.menu-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: #666;
+  color: #666;
+}
+
+.menu-tip {
+  font-size: 10px;
+  color: #666;
+  margin-top: -5px;
+  font-family: 'Courier New', monospace;
+}
+
+/* GAME STYLES */
 .wrap { 
   display: flex; 
   flex-direction: column; 
@@ -39,18 +122,14 @@ canvas {
 #hud { 
   width: var(--w)px; 
   display: flex; 
-  justify-content: space-between; 
+  justify-content: center; 
+  gap: 40px;
   font-size: 12px; 
   letter-spacing: 0.5px;
 }
 
-#synergyHud { 
-  width: var(--w)px; 
-  font-size: 10px; 
-  text-align: center; 
-  opacity: 0.8; 
-  color: #ff0;
-}
+#hp { color: #f44; font-weight: bold; }
+#room { color: #0f0; }
 
 #bar { 
   width: var(--w)px; 
@@ -113,6 +192,7 @@ canvas {
   color: #fff;
   font-family: monospace;
   transition: all 0.2s;
+  margin: 0 4px;
 }
 
 .btn:hover {
@@ -129,7 +209,7 @@ canvas {
 }
 
 .hidden { 
-  display: none; 
+  display: none !important; 
 }
 
 .keyhint { 
@@ -175,9 +255,9 @@ canvas {
 
 #bossHealth {
   height: 100%;
-  background: #fff;
+  background: #0f0; /* starts green, can change in JS */
   width: 100%;
-  transition: width 0.2s;
+  transition: width 0.2s, background 0.3s;
 }
 
 #bossName {
@@ -220,6 +300,17 @@ canvas {
   transition: opacity 0.3s;
   pointer-events: none;
   z-index: 20;
+}
+
+#statusMessage.show {
+  opacity: 1;
+  animation: flash 0.8s ease-in-out;
+}
+
+@keyframes flash {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 
 /* COMPACT DRAFT CONTAINERS */
@@ -275,6 +366,7 @@ canvas {
 #gameOver {
   padding: 16px;
   width: 240px;
+  animation: popIn 0.4s ease-out;
 }
 
 #finalStats {
@@ -283,6 +375,11 @@ canvas {
   font-size: 11px;
   color: #aaa;
   line-height: 1.4;
+}
+
+@keyframes popIn {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }
 
 /* Animations */

@@ -37,7 +37,7 @@ function showStatusMessage(msg) {
 
 // =============== CORE STATE ==================
 const G = {
-  room: 1, maxRooms: 8, state: 'play',
+  room: 1, maxRooms: 8, state: 'menu', // Changed initial state to 'menu'
   player: { x:160, y:120, r:4, hp:8, hpMax:8, spd:1.2, iTimer:0, eclipse:0 },
   enemies: [], bullets: [], ebullets: [], particles: [], keys: {},
   abilitySlots: [null,null,null], selectedSlot:0, lastCast:{ name:null, t: -999 },
@@ -106,6 +106,62 @@ const RELICS = [
   { name:'Synergy Master', icon:'⚡', desc:'Synergies last longer', apply(){ G.relics.push(this);} },
 ];
 function relicVal(name){ return G.relics.some(r=>r.name===name); }
+
+// =============== ENEMY COLLISION SYSTEM =====
+function separateEnemies() {
+  const separation = 1.5; // How strong the separation force is
+  const minDistance = 8; // Minimum distance between enemy centers
+  
+  for (let i = 0; i < G.enemies.length; i++) {
+    const e1 = G.enemies[i];
+    let separationX = 0;
+    let separationY = 0;
+    
+    for (let j = i + 1; j < G.enemies.length; j++) {
+      const e2 = G.enemies[j];
+      const dx = e1.x - e2.x;
+      const dy = e1.y - e2.y;
+      const distance = Math.hypot(dx, dy);
+      
+      if (distance < minDistance && distance > 0) {
+        // Calculate separation force (stronger when closer)
+        const force = (minDistance - distance) / distance * separation;
+        const forceX = dx * force;
+        const forceY = dy * force;
+        
+        // Apply separation force to both enemies
+        separationX += forceX;
+        separationY += forceY;
+        
+        // Apply opposite force to the other enemy
+        if (!e2.separationX) e2.separationX = 0;
+        if (!e2.separationY) e2.separationY = 0;
+        e2.separationX -= forceX;
+        e2.separationY -= forceY;
+      }
+    }
+    
+    // Store separation forces to apply after all calculations
+    e1.separationX = (e1.separationX || 0) + separationX;
+    e1.separationY = (e1.separationY || 0) + separationY;
+  }
+  
+  // Apply separation forces and clear them
+  for (const enemy of G.enemies) {
+    if (enemy.separationX || enemy.separationY) {
+      enemy.x += enemy.separationX || 0;
+      enemy.y += enemy.separationY || 0;
+      
+      // Keep enemies within bounds
+      enemy.x = Math.max(enemy.r, Math.min(c.width - enemy.r, enemy.x));
+      enemy.y = Math.max(enemy.r, Math.min(c.height - enemy.r, enemy.y));
+      
+      // Clear separation forces
+      enemy.separationX = 0;
+      enemy.separationY = 0;
+    }
+  }
+}
 
 // =============== ENEMY SPAWNING =============
 function spawnGrunt(){
@@ -213,6 +269,7 @@ function angleTo(ax,ay,bx,by){ return Math.atan2(by-ay, bx-ax); }
 window.addEventListener('keydown',e=>{ 
   const key = e.key.toLowerCase();
   G.keys[e.key]=true; 
+  // Removed WASD controls, kept only Q/W/E and P
   if(key==='q') { selectSlot(0); useSelected(); }
   else if(key==='w') { selectSlot(1); useSelected(); }
   else if(key==='e') { selectSlot(2); useSelected(); }
@@ -232,7 +289,10 @@ c.addEventListener('mousedown',(e)=>{
   useSelected(); 
 });
 
-function togglePause(){ G.state = G.state==='play'?'paused':'play'; }
+function togglePause(){ 
+  if(G.state === 'play') G.state = 'paused';
+  else if(G.state === 'paused') G.state = 'play';
+}
 
 // =============== UI MANAGEMENT ==============
 const bar = $('#bar');
@@ -260,10 +320,6 @@ function renderBar(){
     d.onclick=()=>{ selectSlot(i); };
     bar.appendChild(d);
   });
-  
-  const synergyText = G.activeSynergies.length > 0 ? 
-    G.activeSynergies.map(s => s.name).join(' · ') : 'None';
-  $('#activeSynergies').textContent = synergyText;
 }
 function selectSlot(i){ G.selectedSlot=i; renderBar(); }
 
@@ -314,7 +370,7 @@ function hasSynergyActive(name){
 }
 
 // =============== DRAFT SYSTEMS ==============
-// Modify the showDraft function to use the new compact layout
+// Modified showDraft to use double-click
 function showDraft(){
   G.state='draft'; 
   $('#draft').classList.remove('hidden'); 
@@ -336,11 +392,13 @@ function showDraft(){
     const b=document.createElement('div'); 
     b.className='slot'; 
     const t=document.createElement('div'); 
-    t.style.fontSize='12px'; // Smaller font
+    t.style.fontSize='12px';
     (Icons[opt.icon]||(()=>{}))((txt)=>{ t.textContent=txt; }); 
     b.appendChild(t); 
     b.title=`${opt.name} (${opt.cd}s CD) | Tags: ${opt.tags.join(', ')}`; 
-    b.onclick=()=>{ 
+    
+    // Double-click handler for abilities
+    b.ondblclick=()=>{ 
       G.abilitySlots[G.selectedSlot] = newAbility(opt); 
       $('#draft').classList.add('hidden'); 
       maybeRelic(); 
@@ -353,19 +411,9 @@ function showDraft(){
     $('#draft').classList.add('hidden');
     maybeRelic();
   };
-  
-  // Update synergy text
-  const names = G.abilitySlots.filter(Boolean).map(a=>a.name);
-  const syn = [];
-  for(let i=0;i<names.length;i++){
-    for(let j=i+1;j<names.length;j++){ 
-      const s=hasSynergy(names[i],names[j]); 
-      if(s) syn.push(`${s.name}`); 
-    }
-  }
-  $('#synergiesText').textContent = syn.length ? syn.join(', ') : 'None';
 }
 
+// Modified showRelicDraft to use double-click
 function showRelicDraft(){
   G.state='relic'; 
   $('#relicDraft').classList.remove('hidden'); 
@@ -388,7 +436,9 @@ function showRelicDraft(){
     t.textContent=opt.icon; 
     b.appendChild(t); 
     b.title=`${opt.name} — ${opt.desc}`; 
-    b.onclick=()=>{ 
+    
+    // Double-click handler for relics
+    b.ondblclick=()=>{ 
       opt.apply(); 
       AudioSys.relic(); 
       $('#relicDraft').classList.add('hidden'); 
@@ -456,6 +506,14 @@ function gameOver(victory){
 $('#restartBtn').onclick=()=>{ 
   $('#gameOver').classList.add('hidden');
   startRun(); 
+};
+
+// Menu button handler
+$('#menuBtn').onclick=()=>{ 
+  $('#gameOver').classList.add('hidden');
+  $('#gameContainer').classList.add('hidden');
+  $('#mainMenu').classList.remove('hidden');
+  G.state = 'menu';
 };
 
 // =============== GAME MECHANICS =============
@@ -538,8 +596,9 @@ function heal(v){
 }
 
 function blink(){ 
-  const mvx = (G.keys['d']||G.keys['ArrowRight']?1:0) - (G.keys['a']||G.keys['ArrowLeft']?1:0);
-  const mvy = (G.keys['s']||G.keys['ArrowDown']?1:0) - (G.keys['w']||G.keys['ArrowUp']?1:0);
+  // Modified to only use arrow keys
+  const mvx = (G.keys['ArrowRight']?1:0) - (G.keys['ArrowLeft']?1:0);
+  const mvy = (G.keys['ArrowDown']?1:0) - (G.keys['ArrowUp']?1:0);
   const len = Math.hypot(mvx,mvy)||1; 
   const dx = (mvx/len)*24; 
   const dy=(mvy/len)*24; 
@@ -669,10 +728,11 @@ function update(dt){
   let vx=0,vy=0; 
   const sp=p.spd*(relicVal('Fleet Boots')?1.15:1);
   
-  if(k['a']||k['ArrowLeft']) vx-=sp; 
-  if(k['d']||k['ArrowRight']) vx+=sp; 
-  if(k['w']||k['ArrowUp']) vy-=sp; 
-  if(k['s']||k['ArrowDown']) vy+=sp;
+  // Modified to only use arrow keys
+  if(k['ArrowLeft']) vx-=sp; 
+  if(k['ArrowRight']) vx+=sp; 
+  if(k['ArrowUp']) vy-=sp; 
+  if(k['ArrowDown']) vy+=sp;
   
   const oldX = p.x, oldY = p.y;
   p.x = Math.max(8, Math.min(c.width-8, p.x+vx)); 
@@ -784,6 +844,9 @@ function update(dt){
       } 
     }
   }
+
+  // Apply enemy collision avoidance
+  separateEnemies();
 
   for(let i=G.ebullets.length-1;i>=0;i--){ 
     const b=G.ebullets[i]; 
@@ -1106,12 +1169,25 @@ function draw(){
   renderBar();
   
   const boss = G.enemies.find(e => e.kind === 'Warden' || e.kind === 'EclipseTwin');
-  if (boss) {
-    const maxHp = 30 + G.room * 4;
-    const healthPercent = Math.max(0, boss.hp) / maxHp;
-    $('#bossHealth').style.width = `${healthPercent * 100}%`;
-    $('#bossHealthText').textContent = `${Math.ceil(healthPercent * 100)}%`;
+if (boss) {
+  const maxHp = 30 + G.room * 4;
+  const healthPercent = Math.max(0, boss.hp) / maxHp;
+  const percent = healthPercent * 100;
+
+  const barEl = $('#bossHealth');
+  barEl.style.width = `${percent}%`;
+  $('#bossHealthText').textContent = `${Math.ceil(percent)}%`;
+
+  // Dynamic color
+  if (percent > 60) {
+    barEl.style.background = '#0f0'; // green
+  } else if (percent > 30) {
+    barEl.style.background = '#ff0'; // yellow
+  } else {
+    barEl.style.background = '#f00'; // red
   }
+}
+
 }
 
 // =============== MAIN LOOP ==================
@@ -1120,10 +1196,22 @@ function frame(t){
   const dt = (t-last)||16; 
   last=t; 
   if(G.state==='play') update(dt); 
-  draw(); 
+  if(G.state !== 'menu') draw(); 
   requestAnimationFrame(frame); 
 } 
 
-// Initialize game
-startRun();
+// =============== MENU HANDLERS ==============
+$('#playBtn').onclick = () => {
+  $('#mainMenu').classList.add('hidden');
+  $('#gameContainer').classList.remove('hidden');
+  startRun();
+};
+
+$('#catalogueBtn').onclick = () => {
+  // Disabled for now - placeholder for future feature
+};
+
+// Initialize
 requestAnimationFrame(frame);
+
+//

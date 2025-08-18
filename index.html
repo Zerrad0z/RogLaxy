@@ -2,17 +2,28 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>ABILITY ROGUELIKE — Skip Ability Draft</title>
+  <title>RogLaxy</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="icon.png" type="image/png">
 </head>
 <body>
-  <div class="wrap">
+  <!-- Main Menu -->
+  <div id="mainMenu" class="menu-container">
+    <h1 class="game-title">RogLaxy</h1>
+    <div class="menu-buttons">
+      <button class="menu-btn" id="playBtn">PLAY</button>
+      <button class="menu-btn" id="catalogueBtn" disabled>CATALOGUE</button>
+    </div>
+    <div class="menu-tip">Coming Soon: Catalogue</div>
+  </div>
+
+  <!-- Game Container -->
+  <div class="wrap hidden" id="gameContainer">
     <div id="hud">
       <div id="hp"></div>
       <div id="room"></div>
     </div>
-    <div id="synergyHud">Active Synergies: <span id="activeSynergies">None</span></div>
     
     <div style="position:relative; display:inline-block;">
       <canvas id="c" width="320" height="240"></canvas>
@@ -26,25 +37,25 @@
     </div>
     
     <div id="bar"></div>
-    <div class="tip">Move: WASD/Arrows · Cast: Q/W/E/LMB · Pause: P (Auto-aim ON)</div>
+    <div class="tip">Move: Arrows · Cast: Q/W/E/LMB · Pause: P</div>
 
-<!-- Ability draft -->
-<div id="draft" class="hidden">
-  <div>Choose ability (replaces slot)</div>
-  <div class="choices" id="draftChoices"></div>
-  <div class="skip-btn" id="skipBtn">SKIP</div>
-  <div class="tip" style="margin-top:4px">Synergies: <span id="synergiesText">None</span></div>
-</div>
+    <!-- Ability draft -->
+    <div id="draft" class="hidden">
+      <div>Choose ability - Double click (replaces slot)</div>
+      <div class="choices" id="draftChoices"></div>
+      <div class="skip-btn" id="skipBtn">SKIP</div>
+    </div>
 
     <!-- Relic draft -->
-<div id="relicDraft" class="hidden">
-  <div>Choose a Relic</div>
-  <div class="choices" id="relicChoices"></div>
-</div>
+    <div id="relicDraft" class="hidden">
+      <div>Choose a Relic - Double click</div>
+      <div class="choices" id="relicChoices"></div>
+    </div>
 
     <div id="gameOver" class="hidden">
       <div style="margin-bottom:8px">Run Over — <span id="finalStats"></span></div>
       <button class="btn" id="restartBtn">Restart</button>
+      <button class="btn" id="menuBtn">Main Menu</button>
     </div>
   </div>
   <script src="game.js"></script>
