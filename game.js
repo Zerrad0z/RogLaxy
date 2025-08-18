@@ -29,15 +29,15 @@ function pText(t,x,y){ ctx.fillStyle='#fff'; ctx.fillText(t,x|0,y|0); }
 function showStatusMessage(msg) {
   const el = $('#statusMessage');
   el.textContent = msg;
-  el.style.opacity = '1';
+  el.classList.add('show');
   setTimeout(() => {
-    el.style.opacity = '0';
+    el.classList.remove('show');
   }, 2000);
 }
 
 // =============== CORE STATE ==================
 const G = {
-  room: 1, maxRooms: 8, state: 'menu', // Changed initial state to 'menu'
+  room: 1, maxRooms: 8, state: 'menu',
   player: { x:160, y:120, r:4, hp:8, hpMax:8, spd:1.2, iTimer:0, eclipse:0 },
   enemies: [], bullets: [], ebullets: [], particles: [], keys: {},
   abilitySlots: [null,null,null], selectedSlot:0, lastCast:{ name:null, t: -999 },
@@ -47,45 +47,71 @@ const G = {
 
 // =============== ABILITIES ===================
 const Icons = {
-  Firebolt: (g)=>{ g('#') }, IceShard: (g)=>{ g('*') }, Lightning: (g)=>{ g('~') },
-  WindSlash: (g)=>{ g('/') }, Shield: (g)=>{ g('[]') }, Heal: (g)=>{ g('+') },
-  VoidNova: (g)=>{ g('◼') }, RadiantArc: (g)=>{ g('∩') }, PoisonDart:(g)=>{ g('!') },
-  Quake:(g)=>{ g('∎') }, Blink:(g)=>{ g('⇢') }
+  Firebolt: (g)=>{ g('❁') }, 
+  IceShard: (g)=>{ g('❅') }, 
+  Lightning: (g)=>{ g('⚡') },
+  WindSlash: (g)=>{ g('∿') }, 
+  Shield: (g)=>{ g('⛨') }, 
+  Heal: (g)=>{ g('✚') },
+  VoidNova: (g)=>{ g('◼') }, 
+  RadiantArc: (g)=>{ g('✺') }, 
+  PoisonDart:(g)=>{ g('☣') },
+  Quake:(g)=>{ g('▼') }, 
+  Blink:(g)=>{ g('⤍') }
 };
 
 const ABILITIES = [
-  { name:'Firebolt', icon:'Firebolt', cd:2.0, tags:['Elemental','Fire'], cast() { autoShoot({spd:2.2,dmg:baseDmg(),pierce:0,kind:'fire'}); } },
-  { name:'IceShard', icon:'IceShard', cd:2.5, tags:['Elemental','Ice'], cast(){ autoShoot({spd:1.8,dmg:baseDmg(),pierce:0,slow:0.6, slowT:80, kind:'ice'}); } },
+  { name:'Firebolt', icon:'Firebolt', cd:2.0, tags:['Elemental','Fire'], cast() { autoShoot({spd:2.2,dmg:baseDmg(),pierce:0,kind:'fire', color: '#ff5722'}); } },
+  { name:'IceShard', icon:'IceShard', cd:2.5, tags:['Elemental','Ice'], cast(){ autoShoot({spd:1.8,dmg:baseDmg(),pierce:0,slow:0.6, slowT:80, kind:'ice', color: '#29b6f6'}); } },
   { name:'Lightning', icon:'Lightning', cd:3.0, tags:['Elemental','Shock'], cast(){ chainLightning(G.player, 3, baseDmg()+1); } },
-  { name:'WindSlash', icon:'WindSlash', cd:1.2, tags:['Elemental','Wind'], cast(){ autoShoot({spd:2.8,dmg:baseDmg(),pierce:2,kind:'wind'}); } },
-  { name:'Shield', icon:'Shield', cd:6.0, tags:['Defense'], cast(){ G.player.iTimer = Math.max(G.player.iTimer, relicVal('PhaseGuard')?140:90); } },
+  { name:'WindSlash', icon:'WindSlash', cd:1.2, tags:['Elemental','Wind'], cast(){ autoShoot({spd:2.8,dmg:baseDmg(),pierce:2,kind:'wind', color: '#8bc34a'}); } },
+  { name:'Shield', icon:'Shield', cd:6.0, tags:['Defense'], cast(){ 
+      G.player.iTimer = Math.max(G.player.iTimer, relicVal('PhaseGuard')?140:90); 
+      createShieldEffect();
+    } 
+  },
   { name:'Heal', icon:'Heal', cd:6.0, tags:['Support'], cast(){ heal(2); } },
-  { name:'VoidNova', icon:'VoidNova', cd:5.0, tags:['Void'], cast(){ for(let a=0;a<16;a++) emitBullet(G.player.x,G.player.y,(a/16)*Math.PI*2,{spd:1.5,dmg:baseDmg(),pierce:0,kind:'void'}); } },
-  { name:'RadiantArc', icon:'RadiantArc', cd:4.0, tags:['Radiant'], cast(){ const dir=aimDir(); emitBullet(G.player.x,G.player.y,dir,{spd:2.3,dmg:baseDmg(),pierce:1,kind:'radiant', boomerang:true, life:90}); } },
-  { name:'PoisonDart', icon:'PoisonDart', cd:1.6, tags:['Toxic'], cast(){ autoShoot({spd:2.0,dmg:baseDmg(),pierce:0,kind:'poison', poison:1, poisonT:160}); } },
+  { name:'VoidNova', icon:'VoidNova', cd:5.0, tags:['Void'], cast(){ for(let a=0;a<16;a++) emitBullet(G.player.x,G.player.y,(a/16)*Math.PI*2,{spd:1.5,dmg:baseDmg(),pierce:0,kind:'void', color: '#ba68c8'}); } },
+  { name:'RadiantArc', icon:'RadiantArc', cd:4.0, tags:['Radiant'], cast(){ const dir=aimDir(); emitBullet(G.player.x,G.player.y,dir,{spd:2.3,dmg:baseDmg(),pierce:1,kind:'radiant', boomerang:true, life:90, color: '#fff176'}); } },
+  { name:'PoisonDart', icon:'PoisonDart', cd:1.6, tags:['Toxic'], cast(){ autoShoot({spd:2.0,dmg:baseDmg(),pierce:0,kind:'poison', poison:1, poisonT:160, color: '#7cb342'}); } },
   { name:'Quake', icon:'Quake', cd:4.5, tags:['Earth','Control'], cast(){ radialExplosion(G.player.x,G.player.y,28, baseDmg()); for(let k=0;k<10;k++) particles(G.player.x,G.player.y,1.4,16); if(relicVal('Grounded')) stunInRadius(G.player.x,G.player.y,24,50); } },
   { name:'Blink', icon:'Blink', cd:3.5, tags:['Mobility'], cast(){ blink(); } },
 ];
 
 function baseDmg(){ return 1 + (G.player.eclipse?1:0) + (relicVal('Sharper')?1:0); }
 
+// Create shield visual effect
+function createShieldEffect() {
+  const shield = document.createElement('div');
+  shield.className = 'shield-effect';
+  shield.style.left = (G.player.x - 20) + 'px';
+  shield.style.top = (G.player.y - 20) + 'px';
+  shield.style.width = '40px';
+  shield.style.height = '40px';
+  document.querySelector('.wrap').appendChild(shield);
+  
+  setTimeout(() => {
+    shield.remove();
+  }, 800);
+}
+
 // Synergy definitions
 const SYNERGIES = {
-  'Firebolt+WindSlash': {name:'Firestorm', desc:'Fire spells create burning winds'},
-  'IceShard+Lightning': {name:'ShatterShock', desc:'Lightning shatters frozen enemies'},
-  'Shield+Heal': {name:'Aegis', desc:'Perfect defense regeneration'},
-  'VoidNova+RadiantArc': {name:'Eclipse', desc:'Shadow and light become one'},
-  'PoisonDart+WindSlash': {name:'VenomRend', desc:'Poison spreads through air'},
-  'Quake+Lightning': {name:'Thunderquake', desc:'Earth splits with electric fury'},
-  'IceShard+Quake': {name:'Frostquake', desc:'Frozen ground shatters'},
-  'Blink+Shield': {name:'PhaseGuard', desc:'Untouchable movement'},
-  'Blink+Lightning': {name:'StormWalk', desc:'Lightning trail follows blinks'},
-  'Lightning+VoidNova': {name:'VoidStorm', desc:'Chaotic energy chains'},
-  'Firebolt+PoisonDart': {name:'Hellfire', desc:'Toxic flames burn longer'},
-  'WindSlash+VoidNova': {name:'VoidTornado', desc:'Reality tears in spirals'},
-  'Heal+Lightning': {name:'LifeSpark', desc:'Healing energy electrifies'},
-  'RadiantArc+IceShard': {name:'PrismIce', desc:'Light refracts through ice'},
-  'Shield+Quake': {name:'Fortress', desc:'Immovable defender'},
+  'Firebolt+WindSlash': {name:'Firestorm', desc:'Fire spells create burning winds', color: '#ff5722'},
+  'IceShard+Lightning': {name:'ShatterShock', desc:'Lightning shatters frozen enemies', color: '#29b6f6'},
+  'Shield+Heal': {name:'Aegis', desc:'Perfect defense regeneration', color: '#4fc3f7'},
+  'VoidNova+RadiantArc': {name:'Eclipse', desc:'Shadow and light become one', color: '#ba68c8'},
+  'PoisonDart+WindSlash': {name:'VenomRend', desc:'Poison spreads through air', color: '#7cb342'},
+  'Quake+Lightning': {name:'Thunderquake', desc:'Earth splits with electric fury', color: '#8d6e63'},
+  'IceShard+Quake': {name:'Frostquake', desc:'Frozen ground shatters', color: '#29b6f6'},
+  'Blink+Shield': {name:'PhaseGuard', desc:'Untouchable movement', color: '#9fa8da'},
+  'Blink+Lightning': {name:'StormWalk', desc:'Lightning trail follows blinks', color: '#ffeb3b'},
+  'Lightning+VoidNova': {name:'VoidStorm', desc:'Chaotic energy chains', color: '#ba68c8'},
+  'Firebolt+PoisonDart': {name:'Hellfire', desc:'Toxic flames burn longer', color: '#ff5722'},
+  'WindSlash+VoidNova': {name:'VoidTornado', desc:'Reality tears in spirals', color: '#8bc34a'},
+  'Heal+Lightning': {name:'LifeSpark', desc:'Healing energy electrifies', color: '#81c784'},
+  'RadiantArc+IceShard': {name:'PrismIce', desc:'Light refracts through ice', color: '#fff176'},
+  'Shield+Quake': {name:'Fortress', desc:'Immovable defender', color: '#4fc3f7'},
 };
 
 function hasSynergy(a,b){ 
@@ -109,8 +135,8 @@ function relicVal(name){ return G.relics.some(r=>r.name===name); }
 
 // =============== ENEMY COLLISION SYSTEM =====
 function separateEnemies() {
-  const separation = 1.5; // How strong the separation force is
-  const minDistance = 8; // Minimum distance between enemy centers
+  const separation = 1.5;
+  const minDistance = 8;
   
   for (let i = 0; i < G.enemies.length; i++) {
     const e1 = G.enemies[i];
@@ -124,16 +150,13 @@ function separateEnemies() {
       const distance = Math.hypot(dx, dy);
       
       if (distance < minDistance && distance > 0) {
-        // Calculate separation force (stronger when closer)
         const force = (minDistance - distance) / distance * separation;
         const forceX = dx * force;
         const forceY = dy * force;
         
-        // Apply separation force to both enemies
         separationX += forceX;
         separationY += forceY;
         
-        // Apply opposite force to the other enemy
         if (!e2.separationX) e2.separationX = 0;
         if (!e2.separationY) e2.separationY = 0;
         e2.separationX -= forceX;
@@ -141,22 +164,18 @@ function separateEnemies() {
       }
     }
     
-    // Store separation forces to apply after all calculations
     e1.separationX = (e1.separationX || 0) + separationX;
     e1.separationY = (e1.separationY || 0) + separationY;
   }
   
-  // Apply separation forces and clear them
   for (const enemy of G.enemies) {
     if (enemy.separationX || enemy.separationY) {
       enemy.x += enemy.separationX || 0;
       enemy.y += enemy.separationY || 0;
       
-      // Keep enemies within bounds
       enemy.x = Math.max(enemy.r, Math.min(c.width - enemy.r, enemy.x));
       enemy.y = Math.max(enemy.r, Math.min(c.height - enemy.r, enemy.y));
       
-      // Clear separation forces
       enemy.separationX = 0;
       enemy.separationY = 0;
     }
@@ -269,7 +288,6 @@ function angleTo(ax,ay,bx,by){ return Math.atan2(by-ay, bx-ax); }
 window.addEventListener('keydown',e=>{ 
   const key = e.key.toLowerCase();
   G.keys[e.key]=true; 
-  // Removed WASD controls, kept only Q/W/E and P
   if(key==='q') { selectSlot(0); useSelected(); }
   else if(key==='w') { selectSlot(1); useSelected(); }
   else if(key==='e') { selectSlot(2); useSelected(); }
@@ -370,7 +388,6 @@ function hasSynergyActive(name){
 }
 
 // =============== DRAFT SYSTEMS ==============
-// Modified showDraft to use double-click
 function showDraft(){
   G.state='draft'; 
   $('#draft').classList.remove('hidden'); 
@@ -413,7 +430,6 @@ function showDraft(){
   };
 }
 
-// Modified showRelicDraft to use double-click
 function showRelicDraft(){
   G.state='relic'; 
   $('#relicDraft').classList.remove('hidden'); 
@@ -992,7 +1008,12 @@ function draw(){
     pRect(p.x-4,p.y-4,8,8,'#fff');
     ctx.globalAlpha = 1;
   }
+  
+  // Player with glow effect
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = '#0ff';
   pRect(p.x-2,p.y-2,4,4,'#fff'); 
+  ctx.shadowBlur = 0;
   
   if(p.iTimer>0){ 
     ctx.globalAlpha=.4; 
@@ -1095,9 +1116,30 @@ function draw(){
     }
   }
 
-  for(const b of G.bullets){ pRect(b.x-1,b.y-1,2,2,'#fff'); }
+  // Enhanced bullet rendering with colors
+  for(const b of G.bullets){ 
+    ctx.fillStyle = b.color || '#fff';
+    pRect(b.x-1,b.y-1,2,2,b.color || '#fff'); 
+    
+    // Add trail effect for some bullets
+    if(b.kind === 'fire' || b.kind === 'radiant') {
+      for(let i=0; i<3; i++) {
+        const trail = {
+          x: b.x - b.vx * i * 0.5,
+          y: b.y - b.vy * i * 0.5,
+          life: 5 - i,
+          color: b.color
+        };
+        ctx.globalAlpha = 0.3 * (1 - i/3);
+        pRect(trail.x-0.5, trail.y-0.5, 1, 1, trail.color);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+  
   for(const b of G.ebullets){ pRect(b.x-1,b.y-1,2,2,'#fff'); }
 
+  // Enhanced particle effects
   for(const q of G.particles){ 
     if(q.kind==='zap'){ 
       ctx.strokeStyle='#fff'; 
@@ -1109,29 +1151,29 @@ function draw(){
       ctx.globalAlpha=1; 
     } else if(q.kind === 'lightning'){
       ctx.globalAlpha = 0.8;
-      pRect(q.x-1,q.y-1,3,3,'#fff');
+      pRect(q.x-1,q.y-1,3,3,'#ffeb3b');
       ctx.globalAlpha = 1;
     } else if(q.kind === 'fire'){
       const alpha = q.life / 30;
       ctx.globalAlpha = alpha;
-      pRect(q.x-1,q.y-1,2,2,'#fff');
+      pRect(q.x-1,q.y-1,2,2,'#ff5722');
       ctx.globalAlpha = 1;
     } else if(q.kind === 'hellfire'){
       const alpha = q.life / 40;
       ctx.globalAlpha = alpha;
-      pRect(q.x-2,q.y-2,4,4,'#fff');
+      pRect(q.x-2,q.y-2,4,4,'#ff5722');
       ctx.globalAlpha = 1;
     } else if(q.kind === 'void'){
       ctx.globalAlpha = 0.6;
-      pRect(q.x-1,q.y-1,2,2,'#fff');
+      pRect(q.x-1,q.y-1,2,2,'#ba68c8');
       ctx.globalAlpha = 1;
     } else if(q.kind === 'eclipse'){
       const size = (60 - q.life) / 10;
       ctx.globalAlpha = q.life / 60;
-      pRect(q.x-size/2,q.y-size/2,size,size,'#fff');
+      pRect(q.x-size/2,q.y-size/2,size,size,'#ba68c8');
       ctx.globalAlpha = 1;
     } else if(q.kind === 'shatter'){
-      ctx.strokeStyle = '#fff';
+      ctx.strokeStyle = '#29b6f6';
       ctx.globalAlpha = q.life / 15;
       ctx.beginPath();
       for(let i=0; i<6; i++){
@@ -1144,19 +1186,19 @@ function draw(){
       ctx.globalAlpha = 1;
     } else if(q.kind === 'lifespark'){
       ctx.globalAlpha = 0.7;
-      pRect(q.x-1,q.y-1,3,3,'#fff');
+      pRect(q.x-1,q.y-1,3,3,'#81c784');
       if(q.life % 3 === 0){
-        pRect(q.x-2,q.y-2,5,5,'#fff');
+        pRect(q.x-2,q.y-2,5,5,'#81c784');
       }
       ctx.globalAlpha = 1;
     } else if(q.kind === 'blink'){
       ctx.globalAlpha = q.life / 20;
-      pRect(q.x,q.y,2,2,'#fff');
+      pRect(q.x,q.y,2,2,'#9fa8da');
       ctx.globalAlpha = 1;
     } else if(q.kind === 'explosion'){
       const alpha = q.life / 18;
       ctx.globalAlpha = alpha;
-      pRect(q.x-1,q.y-1,3,3,'#fff');
+      pRect(q.x-1,q.y-1,3,3,'#ff5722');
       ctx.globalAlpha = 1;
     } else { 
       pRect(q.x,q.y,1,1,'#fff'); 
@@ -1169,25 +1211,24 @@ function draw(){
   renderBar();
   
   const boss = G.enemies.find(e => e.kind === 'Warden' || e.kind === 'EclipseTwin');
-if (boss) {
-  const maxHp = 30 + G.room * 4;
-  const healthPercent = Math.max(0, boss.hp) / maxHp;
-  const percent = healthPercent * 100;
+  if (boss) {
+    const maxHp = 30 + G.room * 4;
+    const healthPercent = Math.max(0, boss.hp) / maxHp;
+    const percent = healthPercent * 100;
 
-  const barEl = $('#bossHealth');
-  barEl.style.width = `${percent}%`;
-  $('#bossHealthText').textContent = `${Math.ceil(percent)}%`;
+    const barEl = $('#bossHealth');
+    barEl.style.width = `${percent}%`;
+    $('#bossHealthText').textContent = `${Math.ceil(percent)}%`;
 
-  // Dynamic color
-  if (percent > 60) {
-    barEl.style.background = '#0f0'; // green
-  } else if (percent > 30) {
-    barEl.style.background = '#ff0'; // yellow
-  } else {
-    barEl.style.background = '#f00'; // red
+    // Dynamic color
+    if (percent > 60) {
+      barEl.style.background = '#0f0';
+    } else if (percent > 30) {
+      barEl.style.background = '#ff0';
+    } else {
+      barEl.style.background = '#f00';
+    }
   }
-}
-
 }
 
 // =============== MAIN LOOP ==================
@@ -1213,5 +1254,3 @@ $('#catalogueBtn').onclick = () => {
 
 // Initialize
 requestAnimationFrame(frame);
-
-//
