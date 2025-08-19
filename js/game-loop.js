@@ -26,7 +26,19 @@ const GameFlow = {
     GameState.player.iTimer = 0;
     GameState.state = 'play';
     
-    EnemySpawner.spawnWave();
+    // Ensure enemy systems are ready before spawning
+    if (window.ensureEnemySystemsReady && typeof window.ensureEnemySystemsReady === 'function') {
+      if (!window.ensureEnemySystemsReady()) {
+        console.error('Enemy systems not ready, cannot spawn enemies');
+        return;
+      }
+    }
+    
+    if (window.EnemySpawner && typeof window.EnemySpawner.spawnWave === 'function') {
+      EnemySpawner.spawnWave();
+    } else {
+      console.error('EnemySpawner.spawnWave not available');
+    }
   },
   
   endRoom() {
@@ -53,6 +65,12 @@ const GameFlow = {
     
     // Update player
     this.updatePlayer(dt);
+    if (GameState.player.iTimer > 0) GameState.player.iTimer--;
+    if (GameState.player.stun > 0) GameState.player.stun--;
+    
+    // Reduce damage cooldowns
+    if (GameState.player.bulletDamageCooldown > 0) GameState.player.bulletDamageCooldown--;
+    if (GameState.player.enemyDamageCooldown > 0) GameState.player.enemyDamageCooldown--;
     
     // Update abilities cooldowns
     this.updateAbilities(dt);
@@ -105,23 +123,53 @@ const GameFlow = {
   },
   
   updateEnemies(dt) {
+    // Ensure enemy systems are ready
+    if (window.ensureEnemySystemsReady && typeof window.ensureEnemySystemsReady === 'function') {
+      if (!window.ensureEnemySystemsReady()) {
+        console.warn('Enemy systems not ready, skipping enemy updates');
+        return;
+      }
+    }
+    
     for (let i = GameState.enemies.length - 1; i >= 0; i--) {
       const enemy = GameState.enemies[i];
       
       // Update enemy AI
-      EnemyAI.updateEnemy(enemy, GameState.player, dt);
+      if (window.EnemyAI && window.EnemyAI.update) {
+        try {
+          window.EnemyAI.update(enemy);
+        } catch (error) {
+          console.error('Error updating enemy:', enemy.kind, error);
+        }
+      } else {
+        console.error('EnemyAI.update not available!');
+        console.log('window.EnemyAI:', window.EnemyAI);
+        if (window.EnemyAI) {
+          console.log('EnemyAI keys:', Object.keys(window.EnemyAI));
+        }
+      }
       
       // Check collision with player
       if (Helpers.dist(enemy.x, enemy.y, GameState.player.x, GameState.player.y) < 
           enemy.r + GameState.player.r) {
         if (GameState.player.iTimer <= 0) {
-          GameState.player.hp--;
-          GameState.player.iTimer = CONSTANTS.INVULNERABILITY_TIME;
-          AudioSystem.hurt();
-          
-          if (GameState.player.hp <= 0) {
-            this.gameOver(false);
-            return;
+          // Fix: prevent negative HP values and add damage cooldown
+          if (!GameState.player.enemyDamageCooldown || GameState.player.enemyDamageCooldown <= 0) {
+            // Much more balanced enemy collision damage scaling
+            let damage = 0.25; // Base collision damage is very low
+            if (GameState.room > 5) damage = 0.5;  // Room 6-10: 0.5 damage
+            if (GameState.room > 10) damage = 0.75; // Room 11+: 0.75 damage
+            if (GameState.room > 15) damage = 1;    // Room 16+: 1 damage
+            
+            GameState.player.hp = Math.max(0, GameState.player.hp - damage);
+            GameState.player.iTimer = CONSTANTS.INVULNERABILITY_TIME;
+            GameState.player.enemyDamageCooldown = 90; // 1.5 second cooldown at 60fps
+            AudioSystem.hurt();
+            
+            if (GameState.player.hp <= 0) {
+              this.gameOver(false);
+              return;
+            }
           }
         }
       }

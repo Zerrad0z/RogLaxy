@@ -1,7 +1,8 @@
 // ========================================
 // FILE: js/utils/helpers.js
 // ========================================
-const Helpers = {
+console.log('Loading Helpers utility...');
+window.Helpers = {
   $: (q) => document.querySelector(q),
   
   dist(x1, y1, x2, y2) {
@@ -18,3 +19,4 @@ const Helpers = {
     return Math.max(min, Math.min(max, value));
   }
 };
+console.log('Helpers utility loaded, window.Helpers =', !!window.Helpers);

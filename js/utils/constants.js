@@ -3,7 +3,7 @@
 // Updated game constants with extended rooms
 // ========================================
 
-const CONSTANTS = {
+window.CONSTANTS = {
   // Canvas
   CANVAS_WIDTH: 320,
   CANVAS_HEIGHT: 240,

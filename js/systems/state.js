@@ -3,7 +3,7 @@
 // Updated game state for extended game
 // ========================================
 
-const GameState = {
+window.GameState = {
   // Room progression
   room: 1,
   maxRooms: 12,  // Extended from 8 to 12

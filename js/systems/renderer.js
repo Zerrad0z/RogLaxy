@@ -91,6 +91,17 @@ const Renderer = (() => {
   function drawEnemy(enemy) {
     ctx.save();
     
+    // General attack effect for all bosses
+    if (enemy.isBoss && enemy.attackEffect > 0) {
+      // Only log when effect first appears to reduce spam
+      if (enemy.attackEffect === 15) {
+        console.log('Drawing boss attack effect:', enemy.attackEffect);
+      }
+      ctx.globalAlpha = 0.6;
+      pRect(enemy.x - 8, enemy.y - 8, 16, 16, '#ff6600');
+      ctx.globalAlpha = 1;
+    }
+    
     // Draw different enemy types
     switch(enemy.kind) {
       case 'grunt':
@@ -342,6 +353,30 @@ const Renderer = (() => {
   
   // Draw Warden boss
   function drawWardenBoss(enemy) {
+    // Attack effect - flash red when attacking
+    if (enemy.slamEffect > 0) {
+      // Only log when effect first appears to reduce spam
+      if (enemy.slamEffect === 10) {
+        console.log('Drawing Warden slam effect:', enemy.slamEffect);
+      }
+      ctx.globalAlpha = 0.8;
+      pRect(enemy.x - 8, enemy.y - 8, 16, 16, '#ff0000');
+      ctx.globalAlpha = 1;
+    }
+    
+    // Attack animation - scale up when attacking
+    if (enemy.attacking) {
+      // Only log when animation first starts to reduce spam
+      if (enemy.attackFrame === 0) {
+        console.log('Drawing Warden attack animation, frame:', enemy.attackFrame);
+      }
+      const scale = 1 + (enemy.attackFrame / 20) * 0.3;
+      ctx.save();
+      ctx.translate(enemy.x, enemy.y);
+      ctx.scale(scale, scale);
+      ctx.translate(-enemy.x, -enemy.y);
+    }
+    
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.moveTo(enemy.x, enemy.y - 6);
@@ -351,6 +386,10 @@ const Renderer = (() => {
     ctx.closePath();
     ctx.fill();
     
+    if (enemy.attacking) {
+      ctx.restore();
+    }
+    
     // Boss health bar (smaller version above boss)
     pRect(enemy.x - 8, enemy.y - 10, 16, 2, '#555');
     const hpRatio = enemy.hp / enemy.maxHp;
@@ -359,6 +398,22 @@ const Renderer = (() => {
   
   // Draw Eclipse Twin boss
   function drawEclipseTwinBoss(enemy) {
+    // Attack effect - flash cyan when attacking
+    if (enemy.twinEffect > 0) {
+      ctx.globalAlpha = 0.7;
+      pRect(enemy.x - 10, enemy.y - 10, 20, 20, '#00ffff');
+      ctx.globalAlpha = 1;
+    }
+    
+    // Attack animation - scale up when attacking
+    if (enemy.attacking) {
+      const scale = 1 + (enemy.attackFrame / 20) * 0.4;
+      ctx.save();
+      ctx.translate(enemy.x, enemy.y);
+      ctx.scale(scale, scale);
+      ctx.translate(-enemy.x, -enemy.y);
+    }
+    
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     for (let i = 0; i < 8; i++) {
@@ -372,6 +427,10 @@ const Renderer = (() => {
     ctx.closePath();
     ctx.fill();
     
+    if (enemy.attacking) {
+      ctx.restore();
+    }
+    
     // Boss health bar
     pRect(enemy.x - 8, enemy.y - 10, 16, 2, '#555');
     const hpRatio = enemy.hp / enemy.maxHp;
@@ -381,6 +440,22 @@ const Renderer = (() => {
   // Draw Void Monarch boss
   function drawVoidMonarchBoss(enemy) {
     const phase = enemy.currentPhase || 1;
+    
+    // Attack effect - flash purple when attacking
+    if (enemy.voidEffect > 0) {
+      ctx.globalAlpha = 0.6;
+      pRect(enemy.x - 12, enemy.y - 12, 24, 24, '#8b00ff');
+      ctx.globalAlpha = 1;
+    }
+    
+    // Attack animation - scale up when attacking
+    if (enemy.attacking) {
+      const scale = 1 + (enemy.attackFrame / 20) * 0.5;
+      ctx.save();
+      ctx.translate(enemy.x, enemy.y);
+      ctx.scale(scale, scale);
+      ctx.translate(-enemy.x, -enemy.y);
+    }
     
     // Phase-based color
     const colors = {
@@ -429,6 +504,10 @@ const Renderer = (() => {
       const orbitX = enemy.x + Math.cos(orbitAngle) * 10;
       const orbitY = enemy.y + Math.sin(orbitAngle) * 10;
       pCircle(orbitX, orbitY, 1, '#fff');
+    }
+    
+    if (enemy.attacking) {
+      ctx.restore();
     }
     
     // Boss health bar
@@ -548,7 +627,136 @@ const Renderer = (() => {
     
     // Enemy bullets
     for (const bullet of GameState.ebullets) {
-      pRect(bullet.x - 1, bullet.y - 1, 2, 2, '#fff');
+      if (bullet.homing) {
+        // Draw homing bullets with a purple glow effect
+        ctx.save();
+
+        // Pulsing glow effect
+        const pulse = Math.sin(GameState.time / 10) * 0.3 + 0.7;
+        ctx.globalAlpha = pulse;
+
+        // Outer glow
+        ctx.fillStyle = '#8b00ff';
+        ctx.fillRect(bullet.x - 3, bullet.y - 3, 6, 6);
+
+        // Middle layer
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = '#b366ff';
+        ctx.fillRect(bullet.x - 2, bullet.y - 2, 4, 4);
+
+        // Core
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(bullet.x - 1, bullet.y - 1, 2, 2);
+
+        // Trail effect for homing bullets
+        ctx.globalAlpha = 0.3;
+        ctx.strokeStyle = '#8b00ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(bullet.x, bullet.y);
+        ctx.lineTo(bullet.x - bullet.vx * 3, bullet.y - bullet.vy * 3);
+        ctx.stroke();
+
+        ctx.restore();
+      } else if (bullet.kind === 'wave') {
+        // Warden wave bullets - red with trail
+        ctx.save();
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(bullet.x - 1, bullet.y - 1, 2, 2);
+        
+        // Red trail effect
+        ctx.globalAlpha = 0.5;
+        ctx.fillRect(bullet.x - bullet.vx * 2, bullet.y - bullet.vy * 2, 2, 2);
+        ctx.globalAlpha = 0.3;
+        ctx.fillRect(bullet.x - bullet.vx * 4, bullet.y - bullet.vy * 4, 2, 2);
+        ctx.restore();
+      } else if (bullet.kind === 'arc') {
+        // Eclipse Twin arc bullets - cyan with glow
+        ctx.save();
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#00ffff';
+        ctx.fillStyle = '#00ffff';
+        ctx.fillRect(bullet.x - 1, bullet.y - 1, 2, 2);
+        ctx.restore();
+      } else if (bullet.kind === 'spiral') {
+        // Void Monarch spiral bullets - purple with rotation
+        ctx.save();
+        ctx.translate(bullet.x, bullet.y);
+        ctx.rotate(GameState.time / 100);
+        ctx.fillStyle = '#8b00ff';
+        ctx.fillRect(-1, -1, 2, 2);
+        ctx.restore();
+      } else if (bullet.kind === 'cross') {
+        // Void Monarch cross bullets - dark purple with cross shape
+        ctx.save();
+        ctx.fillStyle = '#4a148c';
+        ctx.fillRect(bullet.x - 1, bullet.y - 1, 2, 2);
+        ctx.strokeStyle = '#8b00ff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(bullet.x - 2, bullet.y);
+        ctx.lineTo(bullet.x + 2, bullet.y);
+        ctx.moveTo(bullet.x, bullet.y - 2);
+        ctx.lineTo(bullet.x, bullet.y + 2);
+        ctx.stroke();
+        ctx.restore();
+      } else if (bullet.kind === 'chaos') {
+        // Void Monarch chaos bullets - random colors with sparkle
+        ctx.save();
+        const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#8000ff'];
+        ctx.fillStyle = colors[Math.floor(bullet.life / 10) % colors.length];
+        ctx.fillRect(bullet.x - 1, bullet.y - 1, 2, 2);
+        
+        // Sparkle effect
+        if (bullet.life % 5 === 0) {
+          ctx.globalAlpha = 0.7;
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(bullet.x - 2, bullet.y - 2, 4, 4);
+        }
+        ctx.restore();
+      } else if (bullet.kind === 'ring') {
+        // Void Monarch ring bullets - blue ring pattern
+        ctx.save();
+        ctx.fillStyle = '#00bcd4';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.8;
+        
+        // Draw ring bullet
+        ctx.beginPath();
+        ctx.arc(bullet.x, bullet.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      } else if (bullet.kind === 'spiralBurst') {
+        // Void Monarch spiral burst bullets - green spiral pattern
+        ctx.save();
+        ctx.fillStyle = '#4caf50';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.7;
+        
+        // Draw spiral burst bullet
+        ctx.fillRect(bullet.x - 1, bullet.y - 1, 2, 2);
+        ctx.restore();
+      } else if (bullet.kind === 'nova') {
+        // Void Monarch nova bullets - intense purple with glow effect
+        ctx.save();
+        ctx.fillStyle = '#ff00ff';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.9;
+        
+        // Draw glowing bullet
+        ctx.fillRect(bullet.x - 1.5, bullet.y - 1.5, 3, 3);
+        ctx.globalAlpha = 0.4;
+        ctx.fillRect(bullet.x - 3, bullet.y - 3, 6, 6);
+        ctx.restore();
+      } else {
+        // Regular enemy bullets
+        pRect(bullet.x - 1, bullet.y - 1, 2, 2, '#fff');
+      }
     }
   }
   

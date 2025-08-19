@@ -1,7 +1,8 @@
 // ========================================
 // FILE: js/logic/abilities-logic.js
 // ========================================
-const AbilitiesLogic = {
+window.AbilitiesLogic = window.AbilitiesLogic || {};
+Object.assign(window.AbilitiesLogic, {
   baseDmg() {
     return 1 + 
            (GameState.player.eclipse ? 1 : 0) + 
@@ -91,4 +92,4 @@ const AbilitiesLogic = {
       shield.remove();
     }, 800);
   }
-};
+});

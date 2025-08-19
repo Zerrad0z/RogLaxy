@@ -1,7 +1,8 @@
 // ========================================
 // FILE: js/utils/rng.js
 // ========================================
-const RNG = (() => {
+console.log('Loading RNG utility...');
+window.RNG = (() => {
   let seed = Date.now() % 2147483647;
   
   return {
@@ -19,3 +20,4 @@ const RNG = (() => {
     }
   };
 })();
+console.log('RNG utility loaded, window.RNG =', !!window.RNG);

@@ -1,27 +1,35 @@
 // ========================================
 // FILE: js/ui/hud.js
+// FIXED: Boss bar now tracks VoidMonarch
 // ========================================
 const HUD = {
   update() {
     const player = GameState.player;
-    Helpers.$('#hp').textContent = `HP ${'♥'.repeat(player.hp)}${'·'.repeat(player.hpMax - player.hp)}`;
+    // Fix: Clamp HP values to prevent negative repeat errors
+    const currentHp = Math.max(0, Math.min(player.hp, player.hpMax));
+    const missingHp = Math.max(0, player.hpMax - currentHp);
+    
+    Helpers.$('#hp').textContent = `HP ${'♥'.repeat(currentHp)}${'·'.repeat(missingHp)}`;
     Helpers.$('#room').textContent = `Room ${GameState.room}/${GameState.maxRooms}`;
     
     this.updateBossBar();
   },
   
   updateBossBar() {
-    const boss = GameState.enemies.find(e => e.kind === 'Warden' || e.kind === 'EclipseTwin');
+    // FIXED: Now includes VoidMonarch!
+    const boss = GameState.enemies.find(e => 
+      e.kind === 'Warden' || e.kind === 'EclipseTwin' || e.kind === 'VoidMonarch'
+    );
+    
     if (boss) {
-      const maxHp = 30 + GameState.room * 4;
-      const healthPercent = Math.max(0, boss.hp) / maxHp;
+      const healthPercent = Math.max(0, boss.hp / boss.maxHp);
       const percent = healthPercent * 100;
       
       const barEl = Helpers.$('#bossHealth');
       barEl.style.width = `${percent}%`;
       Helpers.$('#bossHealthText').textContent = `${Math.ceil(percent)}%`;
       
-      // Dynamic color
+      // Dynamic color based on health
       if (percent > 60) {
         barEl.style.background = '#0f0';
       } else if (percent > 30) {
