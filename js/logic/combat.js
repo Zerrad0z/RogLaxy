@@ -24,8 +24,34 @@ const Combat = {
       const idx = GameState.enemies.indexOf(enemy);
       if (idx >= 0) GameState.enemies.splice(idx, 1);
       
-      if (enemy.kind === 'Warden' || enemy.kind === 'EclipseTwin') {
+      // Handle boss deaths
+      if (enemy.kind === 'Warden' || enemy.kind === 'EclipseTwin' || enemy.kind === 'VoidMonarch') {
+        console.log(`🏆 BOSS DEFEATED: ${enemy.kind}`);
         Helpers.$('#bossBar').style.display = 'none';
+        
+        // Call defeatBoss to track boss defeat and give rewards
+        if (GameState.defeatBoss) {
+          GameState.defeatBoss(enemy.kind);
+        }
+        
+        // Handle different boss rewards
+        if (enemy.kind === 'Warden' || enemy.kind === 'EclipseTwin') {
+          // Show legendary relic draft (yellow squares) for first two bosses
+          if (window.DraftUI && window.DraftUI.showLegendaryRelicDraft) {
+            window.DraftUI.showLegendaryRelicDraft();
+          }
+        } else if (enemy.kind === 'VoidMonarch') {
+          // Show credits screen for final boss victory!
+          console.log('🎉 VOID MONARCH DEFEATED! Showing credits in 1 second...');
+          setTimeout(() => {
+            console.log('🌟 Showing credits screen now!');
+            if (window.UI && window.UI.showCredits) {
+              window.UI.showCredits();
+            } else {
+              console.error('❌ UI.showCredits not available!');
+            }
+          }, 1000); // 1 second delay for dramatic effect
+        }
       }
     }
     

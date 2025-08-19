@@ -89,10 +89,58 @@ const DraftUI = {
   },
   
   maybeShowRelic() {
-    if (GameState.room % 2 === 0) {
-      this.showRelicDraft();
-    } else {
-      GameFlow.startRoom();
+    // No more automatic relic rewards every 2 rooms
+    // Relics are now only given by boss defeats
+    GameFlow.startRoom();
+  },
+  
+  showLegendaryRelicDraft() {
+    GameState.state = 'legendaryRelic';
+    Helpers.$('#relicDraft').classList.remove('hidden');
+    Helpers.$('#draft').classList.add('hidden');
+    
+    // Get all relics and mark them as legendary (yellow squares)
+    const pool = RELICS.filter(r => !RelicSystem.hasRelic(r.name));
+    const picks = [];
+    
+    while (picks.length < 3 && pool.length) {
+      const idx = RNG.range(0, pool.length - 1);
+      picks.push(pool.splice(idx, 1)[0]);
     }
+    
+    const choicesBox = Helpers.$('#relicChoices');
+    choicesBox.innerHTML = '';
+    
+    picks.forEach(relic => {
+      const slot = document.createElement('div');
+      slot.className = 'slot legendary'; // Add legendary class for yellow styling
+      
+      const icon = document.createElement('div');
+      icon.style.fontSize = '14px';
+      icon.textContent = relic.icon;
+      slot.appendChild(icon);
+      
+      slot.title = `LEGENDARY: ${relic.name} — ${relic.desc}`;
+      
+      slot.ondblclick = () => {
+        relic.apply();
+        AudioSystem.relic();
+        Helpers.$('#relicDraft').classList.add('hidden');
+        
+        // After choosing legendary relic, move to next room instead of restarting current room
+        if (GameFlow.endRoom) {
+          GameFlow.endRoom();
+        } else {
+          // Fallback if endRoom doesn't exist
+          GameState.room++;
+          GameFlow.startRoom();
+        }
+      };
+      
+      choicesBox.appendChild(slot);
+    });
   }
 };
+
+// Make DraftUI globally available
+window.DraftUI = DraftUI;

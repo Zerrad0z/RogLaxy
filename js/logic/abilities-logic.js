@@ -42,8 +42,8 @@ Object.assign(window.AbilitiesLogic, {
     const oldX = GameState.player.x;
     const oldY = GameState.player.y;
     
-    GameState.player.x = Helpers.clamp(GameState.player.x + dx, 8, 312);
-    GameState.player.y = Helpers.clamp(GameState.player.y + dy, 8, 232);
+            GameState.player.x = Helpers.clamp(GameState.player.x + dx, 8, 312);
+            GameState.player.y = Helpers.clamp(GameState.player.y + dy, 8, 232);
     GameState.player.iTimer = Math.max(GameState.player.iTimer, 50);
     
     // Handle synergy effects
@@ -79,17 +79,6 @@ Object.assign(window.AbilitiesLogic, {
     }
   },
   
-  createShieldEffect() {
-    const shield = document.createElement('div');
-    shield.className = 'shield-effect';
-    shield.style.left = (GameState.player.x - 20) + 'px';
-    shield.style.top = (GameState.player.y - 20) + 'px';
-    shield.style.width = '40px';
-    shield.style.height = '40px';
-    Helpers.$('.wrap').appendChild(shield);
-    
-    setTimeout(() => {
-      shield.remove();
-    }, 800);
-  }
+  // Shield effect is now handled in the renderer
+  // No more DOM manipulation needed
 });

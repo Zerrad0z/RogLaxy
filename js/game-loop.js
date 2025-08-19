@@ -67,6 +67,7 @@ const GameFlow = {
     this.updatePlayer(dt);
     if (GameState.player.iTimer > 0) GameState.player.iTimer--;
     if (GameState.player.stun > 0) GameState.player.stun--;
+    if (GameState.player.shieldEffect > 0) GameState.player.shieldEffect--;
     
     // Reduce damage cooldowns
     if (GameState.player.bulletDamageCooldown > 0) GameState.player.bulletDamageCooldown--;
@@ -108,17 +109,44 @@ const GameFlow = {
     player.x = Helpers.clamp(player.x + vx, 8, 312);
     player.y = Helpers.clamp(player.y + vy, 8, 232);
     
+    // Track movement history for boss prediction AI
+    if (!player.lastPositions) {
+      player.lastPositions = [];
+    }
+    
+    // Add current position to history
+    player.lastPositions.push({ x: player.x, y: player.y, time: GameState.time });
+    
+    // Keep only last 10 positions (about 1/6 second at 60fps)
+    if (player.lastPositions.length > 10) {
+      player.lastPositions.shift();
+    }
+    
     if (player.iTimer > 0) player.iTimer--;
     if (player.eclipse > 0) player.eclipse--;
+    if (player.shieldEffect > 0) player.shieldEffect--;
   },
   
   updateAbilities(dt) {
     for (const ability of GameState.abilitySlots) {
       if (!ability) continue;
+      
+      // Ensure cdLeft property exists and is valid
+      if (typeof ability.cdLeft === 'undefined' || ability.cdLeft === null) {
+        ability.cdLeft = 0;
+      }
+      
       if (ability.cdLeft > 0) {
         const rate = RelicSystem.hasRelic('Focusing Core') ? 0.85 : 1;
         ability.cdLeft = Math.max(0, ability.cdLeft - dt / 1000 * (1 / rate));
       }
+    }
+    
+    // Update HUD to show real-time cooldown changes
+    if (HUD && HUD.renderAbilityBar) {
+      HUD.renderAbilityBar();
+    } else {
+      console.warn('HUD or renderAbilityBar not available for cooldown updates');
     }
   },
   
@@ -228,3 +256,6 @@ const GameFlow = {
     HUD.update();
   }
 };
+
+// Make GameFlow globally available
+window.GameFlow = GameFlow;

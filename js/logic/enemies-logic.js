@@ -73,25 +73,80 @@ function initEnemySpawner() {
     CANVAS_W: 320,
     CANVAS_H: 240,
 
-    // Spawn a single grunt enemy
-    spawnGrunt() {
-      // Check if GameState is available
-      if (!window.GameState) {
-        console.warn('GameState not available, cannot spawn grunt');
-        return;
+      // Helper function to get safe spawn position away from player
+  getSafeSpawnPosition(enemyRadius) {
+    const player = GameState.player;
+    const minDistance = 40; // Minimum distance from player
+    
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (attempts < maxAttempts) {
+      const x = RNG.range(enemyRadius, this.CANVAS_W - enemyRadius);
+      const y = RNG.range(enemyRadius, this.CANVAS_H - enemyRadius);
+      
+      // Check distance from player
+      if (player) {
+        const dx = x - player.x;
+        const dy = y - player.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance >= minDistance) {
+          return { x, y };
+        }
+      } else {
+        // If no player, just return the position
+        return { x, y };
       }
       
-      const type = Types.grunt;
-      if (!type) {
-        console.error('spawnGrunt: Types.grunt missing');
-        return;
-      }
-      const x = RNG.range(type.radius, this.CANVAS_W - type.radius);
-      const y = RNG.range(type.radius, this.CANVAS_H - type.radius);
-      const hp = type.baseHp + type.hpScaling(GameState.room);
+      attempts++;
+    }
+    
+    // Fallback: spawn at edge of canvas
+    const side = RNG.range(0, 3);
+    let x, y;
+    
+    switch (side) {
+      case 0: // Top
+        x = RNG.range(enemyRadius, this.CANVAS_W - enemyRadius);
+        y = enemyRadius;
+        break;
+      case 1: // Right
+        x = this.CANVAS_W - enemyRadius;
+        y = RNG.range(enemyRadius, this.CANVAS_H - enemyRadius);
+        break;
+      case 2: // Bottom
+        x = RNG.range(enemyRadius, this.CANVAS_W - enemyRadius);
+        y = this.CANVAS_H - enemyRadius;
+        break;
+      case 3: // Left
+        x = enemyRadius;
+        y = RNG.range(enemyRadius, this.CANVAS_H - enemyRadius);
+        break;
+    }
+    
+    return { x, y };
+  },
+
+  // Spawn a single grunt enemy
+  spawnGrunt() {
+    // Check if GameState is available
+    if (!window.GameState) {
+      console.warn('GameState not available, cannot spawn grunt');
+      return;
+    }
+    
+    const type = Types.grunt;
+    if (!type) {
+      console.error('spawnGrunt: Types.grunt missing');
+      return;
+    }
+    const spawnPos = this.getSafeSpawnPosition(type.radius);
+    const hp = type.baseHp + type.hpScaling(GameState.room);
 
       GameState.enemies.push({
-        x, y,
+        x: spawnPos.x,
+        y: spawnPos.y,
         r: type.radius,
         hp,
         maxHp: hp,
@@ -113,12 +168,12 @@ function initEnemySpawner() {
         console.error('spawnArcher: Types.archer missing');
         return;
       }
-      const x = RNG.range(type.radius, this.CANVAS_W - type.radius);
-      const y = RNG.range(type.radius, this.CANVAS_H - type.radius);
+      const spawnPos = this.getSafeSpawnPosition(type.radius);
       const hp = type.baseHp + type.hpScaling(GameState.room);
 
       GameState.enemies.push({
-        x, y,
+        x: spawnPos.x,
+        y: spawnPos.y,
         r: type.radius,
         hp,
         maxHp: hp,
@@ -138,12 +193,12 @@ function initEnemySpawner() {
         console.error('spawnBomber: Types.bomber missing');
         return;
       }
-      const x = RNG.range(type.radius, this.CANVAS_W - type.radius);
-      const y = RNG.range(type.radius, this.CANVAS_H - type.radius);
+      const spawnPos = this.getSafeSpawnPosition(type.radius);
       const hp = type.baseHp + type.hpScaling(GameState.room);
 
       GameState.enemies.push({
-        x, y,
+        x: spawnPos.x,
+        y: spawnPos.y,
         r: type.radius,
         hp,
         maxHp: hp,
@@ -151,7 +206,10 @@ function initEnemySpawner() {
         slowMul: 1,
         stun: 0,
         kind: 'bomber',
-        spd: type.baseSpeed
+        spd: type.baseSpeed * 1.5, // Increased speed
+        aggroRange: 80, // Aggro range for explosion
+        exploding: false,
+        explosionTimer: 0
       });
     },
 
@@ -423,10 +481,30 @@ function initEnemySpawner() {
       });
     },
 
-    // spawnBoss unchanged (ensure it centers using constants)
+    // spawnBoss - Fixed to spawn away from player
     spawnBoss() {
-      const x = Math.floor(this.CANVAS_W / 2);
-      const y = Math.floor(this.CANVAS_H / 2);
+      // Spawn boss at a safe distance from the player
+      const playerX = GameState.player.x || 160;
+      const playerY = GameState.player.y || 120;
+      
+      // Calculate safe spawn position (opposite side of canvas from player)
+      let x, y;
+      if (playerX < this.CANVAS_W / 2) {
+        // Player is on left side, spawn boss on right side
+        x = this.CANVAS_W - 60;
+      } else {
+        // Player is on right side, spawn boss on left side
+        x = 60;
+      }
+      
+      if (playerY < this.CANVAS_H / 2) {
+        // Player is on top side, spawn boss on bottom side
+        y = this.CANVAS_H - 60;
+      } else {
+        // Player is on bottom side, spawn boss on top side
+        y = 60;
+      }
+      
       let kind, bossName;
       if (GameState.room === 4) {
         kind = 'Warden';
@@ -476,7 +554,25 @@ function initEnemySpawner() {
     spawnVoidMonarch() {
       const type = Types.VoidMonarch;
       if (!type) { console.error('spawnVoidMonarch: Types.VoidMonarch missing'); return; }
-      const x = 160, y = 80;
+      
+      // Spawn at safe distance from player
+      const playerX = GameState.player.x || 160;
+      const playerY = GameState.player.y || 120;
+      
+      // Spawn on opposite side of canvas from player
+      let x, y;
+      if (playerX < this.CANVAS_W / 2) {
+        x = this.CANVAS_W - 60;
+      } else {
+        x = 60;
+      }
+      
+      if (playerY < this.CANVAS_H / 2) {
+        y = this.CANVAS_H - 60;
+      } else {
+        y = 60;
+      }
+      
       const hp = type.baseHp + type.hpScaling(GameState.room);
       GameState.enemies.push({
         x, y,
@@ -693,13 +789,20 @@ function initEnemyAI() {
       return true;
     },
 
-    // Grunt AI: basic melee attack
+    // Grunt AI: movement + melee + ranged attacks (like Enter the Gungeon)
     gruntAI(enemy) {
       const player = GameState.player;
       const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
 
-      if (dist < enemy.r + 10) {
-        // Deal damage to player on contact - Fix: prevent negative HP and add cooldown
+      // Move towards player when far
+      if (dist > 80) {
+        const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+        enemy.x += Math.cos(angle) * enemy.spd * 0.8;
+        enemy.y += Math.sin(angle) * enemy.spd * 0.8;
+      }
+
+      // Melee attack when close
+      if (dist < enemy.r + 15) {
         if (!enemy.damageCooldown || enemy.damageCooldown <= 0) {
           // Much more balanced damage scaling
           let damage = 0.25; // Base damage is very low
@@ -711,6 +814,12 @@ function initEnemyAI() {
           this.handleStun(player, enemy);
           enemy.damageCooldown = 90; // 1.5 second cooldown at 60fps
         }
+      }
+      
+      // Ranged attack when at medium distance
+      if (dist > 40 && dist < 120 && (!enemy.shootCooldown || enemy.shootCooldown <= 0)) {
+        this.shootBullet(enemy, player);
+        enemy.shootCooldown = 180; // 3 second cooldown
       }
     },
 
@@ -725,9 +834,146 @@ function initEnemyAI() {
       }
     },
 
-    // Bomber AI: drop bomb on death
+    // Bomber AI: Chase and explode when close to player
     bomberAI(enemy) {
-      // Bomb is dropped on death, handled in enemy death logic
+      const player = GameState.player;
+      const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+      
+      // Check if player is in aggro range
+      if (dist < enemy.aggroRange && !enemy.exploding) {
+        // Start explosion sequence
+        enemy.exploding = true;
+        enemy.explosionTimer = 30; // 0.5 seconds to explode
+        enemy.spd = 0; // Stop moving
+      }
+      
+      // Handle explosion countdown
+      if (enemy.exploding) {
+        enemy.explosionTimer--;
+        
+        // Visual effect - enemy gets bigger and redder
+        enemy.explosionScale = 1 + (30 - enemy.explosionTimer) / 30;
+        
+        if (enemy.explosionTimer <= 0) {
+          // EXPLODE!
+          this.bomberExplode(enemy);
+        }
+      } else {
+        // Normal movement towards player
+        const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+        enemy.x += Math.cos(angle) * enemy.spd;
+        enemy.y += Math.sin(angle) * enemy.spd;
+      }
+    },
+    
+    // Bomber explosion effect
+    bomberExplode(enemy) {
+      // Deal damage to player if close
+      const player = GameState.player;
+      const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+      
+      if (dist < 60) { // Explosion radius
+        // Deal damage
+        if (!player.enemyDamageCooldown || player.enemyDamageCooldown <= 0) {
+          const damage = 1.5; // High explosion damage
+          player.hp = Math.max(0, player.hp - damage);
+          player.iTimer = CONSTANTS.INVULNERABILITY_TIME;
+          player.enemyDamageCooldown = 90;
+          AudioSystem.hurt();
+        }
+      }
+      
+      // Create explosion particles
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        const speed = 2 + Math.random() * 2;
+        GameState.particles.push({
+          x: enemy.x,
+          y: enemy.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 30,
+          kind: 'explosion'
+        });
+      }
+      
+      // Remove the enemy
+      const idx = GameState.enemies.indexOf(enemy);
+      if (idx >= 0) GameState.enemies.splice(idx, 1);
+    },
+    
+    // Shoot basic bullet (for grunts and other enemies)
+    shootBullet(enemy, player) {
+      const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+      const speed = 1.5;
+      
+      GameState.ebullets.push({
+        x: enemy.x,
+        y: enemy.y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 80,
+        dmg: 0.3,
+        kind: 'basic'
+      });
+      
+      // Visual effect
+      enemy.attacking = true;
+      enemy.attackFrame = 0;
+    },
+    
+    // Tank slam attack
+    tankSlam(enemy, player) {
+      // Deal heavy damage
+      if (!player.enemyDamageCooldown || player.enemyDamageCooldown <= 0) {
+        const damage = 1.5; // Heavy damage
+        player.hp = Math.max(0, player.hp - damage);
+        player.iTimer = CONSTANTS.INVULNERABILITY_TIME;
+        player.enemyDamageCooldown = 90;
+        AudioSystem.hurt();
+      }
+      
+      // Create shockwave effect
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        GameState.particles.push({
+          x: enemy.x,
+          y: enemy.y,
+          vx: Math.cos(angle) * 1.5,
+          vy: Math.sin(angle) * 1.5,
+          life: 45,
+          kind: 'shockwave'
+        });
+      }
+      
+      // Visual effect
+      enemy.attacking = true;
+      enemy.attackFrame = 0;
+      enemy.slamEffect = 30;
+    },
+    
+    // Tank mortar attack
+    shootMortar(enemy, player) {
+      // Calculate arc trajectory
+      const dx = player.x - enemy.x;
+      const dy = player.y - enemy.y;
+      const distance = Math.hypot(dx, dy);
+      
+      // Mortar shell with arc
+      GameState.ebullets.push({
+        x: enemy.x,
+        y: enemy.y,
+        vx: (dx / distance) * 2,
+        vy: (dy / distance) * 2 - 1, // Arc effect
+        life: 120,
+        dmg: 0.8,
+        kind: 'mortar',
+        gravity: 0.05
+      });
+      
+      // Visual effect
+      enemy.attacking = true;
+      enemy.attackFrame = 0;
     },
 
     // Dasher AI: dashes towards player
@@ -771,9 +1017,29 @@ function initEnemyAI() {
       // Splitting logic handled in enemy death logic
     },
 
-    // Tank AI: high health, low speed
+    // Tank AI: high health, slow movement, but powerful attacks
     tankAI(enemy) {
-      // Just a high health enemy, no special AI
+      const player = GameState.player;
+      const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+
+      // Slow movement towards player
+      if (dist > 60) {
+        const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+        enemy.x += Math.cos(angle) * enemy.spd * 0.4; // Very slow
+        enemy.y += Math.sin(angle) * enemy.spd * 0.4;
+      }
+
+      // Heavy slam attack when close
+      if (dist < enemy.r + 20 && (!enemy.attackCooldown || enemy.attackCooldown <= 0)) {
+        this.tankSlam(enemy, player);
+        enemy.attackCooldown = 240; // 4 second cooldown
+      }
+      
+      // Ranged mortar attack when at medium distance
+      if (dist > 80 && dist < 150 && (!enemy.shootCooldown || enemy.shootCooldown <= 0)) {
+        this.shootMortar(enemy, player);
+        enemy.shootCooldown = 300; // 5 second cooldown
+      }
     },
 
     // Sniper AI: charges shot, high damage
@@ -946,7 +1212,7 @@ function initEnemyAI() {
         if (!enemy.damageCooldown || enemy.damageCooldown <= 0) {
           // Wave attack - sends bullets in all directions
           this.waveAttack(enemy);
-          enemy.damageCooldown = 180; // 3 second cooldown at 60fps
+          enemy.damageCooldown = 120; // 2 second cooldown (reduced from 3)
         }
       }
     },
@@ -966,8 +1232,8 @@ function initEnemyAI() {
         const bullet = {
           x: enemy.x,
           y: enemy.y,
-          vx: Math.cos(angle) * 2,
-          vy: Math.sin(angle) * 2,
+          vx: Math.cos(angle) * 1,
+          vy: Math.sin(angle) * 1,
           life: 120,
           kind: 'wave',
           dmg: 0.25 // Very low damage for early boss
@@ -998,7 +1264,7 @@ function initEnemyAI() {
       }
     },
 
-    // Arc twin AI for Eclipse Twin - RESTORE: Old arc attack
+    // Arc twin AI for Eclipse Twin - AUTOMATIC ATTACKS
     arcTwinAI(enemy) {
       const player = GameState.player;
       const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
@@ -1009,22 +1275,22 @@ function initEnemyAI() {
         const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
         enemy.x += Math.cos(angle) * enemy.spd * 0.5;
         enemy.y += Math.sin(angle) * enemy.spd * 0.5;
-      } else {
-        // Arc attack with cooldown - RESTORE: Old arc pattern
-        if (!enemy.damageCooldown || enemy.damageCooldown <= 0) {
-          this.arcAttack(enemy, player);
-          enemy.damageCooldown = 120; // 2 second cooldown
-          
-          // Add special visual effect for Eclipse Twin
-          if (window.ParticleSystem) {
-            window.ParticleSystem.create(enemy.x, enemy.y, 8, 20, 'twin');
-          }
-          enemy.twinEffect = 20;
+      }
+      
+      // ALWAYS attack automatically regardless of distance
+      if (!enemy.damageCooldown || enemy.damageCooldown <= 0) {
+        this.arcAttack(enemy, player);
+        enemy.damageCooldown = 90; // 1.5 second cooldown (reduced from 2)
+        
+        // Add special visual effect for Eclipse Twin
+        if (window.ParticleSystem) {
+          window.ParticleSystem.create(enemy.x, enemy.y, 8, 20, 'twin');
         }
+        enemy.twinEffect = 20;
       }
     },
 
-    // Aggressive twin AI for Eclipse Twin Phase 2
+    // Aggressive twin AI for Eclipse Twin Phase 2 - AUTOMATIC ATTACKS
     aggressiveTwinAI(enemy) {
       const player = GameState.player;
       const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
@@ -1036,10 +1302,10 @@ function initEnemyAI() {
         enemy.y += Math.sin(angle) * enemy.spd * 0.8;
       }
 
-      // Faster arc attacks
-      if (dist < 60 && (!enemy.damageCooldown || enemy.damageCooldown <= 0)) {
+      // ALWAYS attack automatically regardless of distance
+      if (!enemy.damageCooldown || enemy.damageCooldown <= 0) {
         this.arcAttack(enemy, player);
-        enemy.damageCooldown = 90; // 1.5 second cooldown
+        enemy.damageCooldown = 60; // 1 second cooldown (reduced from 1.5)
         enemy.twinEffect = 25;
       }
     },
@@ -1064,22 +1330,94 @@ function initEnemyAI() {
       }
     },
 
-    // Arc attack for Eclipse Twin - sends bullets in an arc
+    // Arc attack for Eclipse Twin - PREDICTS PLAYER MOVEMENT for intelligent aiming!
+    // This makes the boss much more challenging by aiming where the player WILL be, not where they ARE!
     arcAttack(enemy, player) {
-      // Calculate angle to player
-      const angleToPlayer = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+      // PREDICT where player will be when bullets arrive
+      const bulletSpeed = 1;
+      const distanceToPlayer = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+      const timeToReach = distanceToPlayer / bulletSpeed;
       
-      // Send bullets in a 90-degree arc centered on player
-      const arcSpread = Math.PI / 2; // 90 degrees
+      // Calculate predicted position based on player's current movement
+      let predictedX = player.x;
+      let predictedY = player.y;
+      
+      // If player is moving, predict their future position
+      if (GameState.player) {
+        // Get player velocity from input system
+        const playerSpeed = 2; // Base player movement speed
+        const keys = GameState.keys || {};
+        
+        // Calculate player's current movement direction
+        let playerVx = 0;
+        let playerVy = 0;
+        
+        if (keys['ArrowUp'] || keys['w'] || keys['W']) playerVy -= playerSpeed;
+        if (keys['ArrowDown'] || keys['s'] || keys['S']) playerVy += playerSpeed;
+        if (keys['ArrowLeft'] || keys['a'] || keys['A']) playerVx -= playerSpeed;
+        if (keys['ArrowRight'] || keys['d'] || keys['D']) playerVx += playerSpeed;
+        
+        // Normalize diagonal movement
+        if (playerVx !== 0 && playerVy !== 0) {
+          playerVx *= 0.707; // 1/√2
+          playerVy *= 0.707;
+        }
+        
+              // ADVANCED PREDICTION: Consider player's movement patterns and recent history
+      if (playerVx !== 0 || playerVy !== 0) {
+        // Basic prediction based on current movement
+        predictedX = player.x + (playerVx * timeToReach);
+        predictedY = player.y + (playerVy * timeToReach);
+        
+        // ENHANCED PREDICTION: Consider player's movement history for better accuracy
+        if (GameState.player && GameState.player.lastPositions) {
+          // Get recent movement pattern
+          const recentPositions = GameState.player.lastPositions;
+          if (recentPositions.length >= 2) {
+            // Calculate recent velocity from actual movement
+            const recentVx = recentPositions[recentPositions.length - 1].x - recentPositions[recentPositions.length - 2].x;
+            const recentVy = recentPositions[recentPositions.length - 1].y - recentPositions[recentPositions.length - 2].y;
+            
+            // Blend current input with recent movement for more accurate prediction
+            const blendFactor = 0.7; // 70% recent movement, 30% current input
+            const blendedVx = recentVx * blendFactor + playerVx * (1 - blendFactor);
+            const blendedVy = recentVy * blendFactor + playerVy * (1 - blendFactor);
+            
+            // Apply blended prediction
+            predictedX = player.x + (blendedVx * timeToReach);
+            predictedY = player.y + (blendedVy * timeToReach);
+          }
+        }
+        
+        // Add some randomness to make it less predictable (boss isn't perfect)
+        const predictionError = 0.2; // Reduced to 20% for better accuracy
+        predictedX += (Math.random() - 0.5) * 15 * predictionError;
+        predictedY += (Math.random() - 0.5) * 15 * predictionError;
+        
+        // Ensure prediction stays within reasonable bounds
+        predictedX = Math.max(50, Math.min(EnemySpawner.CANVAS_W - 50, predictedX));
+        predictedY = Math.max(50, Math.min(EnemySpawner.CANVAS_H - 50, predictedY));
+      } else {
+        // Player is stationary - aim directly at them
+        predictedX = player.x;
+        predictedY = player.y;
+      }
+      }
+      
+      // Calculate angle to PREDICTED position (not current position)
+      const angleToPredicted = Math.atan2(predictedY - enemy.y, predictedX - enemy.x);
+      
+      // Send bullets in a SMALL 45-degree arc centered on PREDICTED position
+      const arcSpread = Math.PI / 4; // 45 degrees (tight arc)
       const bulletCount = 5;
       
       for (let i = 0; i < bulletCount; i++) {
-        const angle = angleToPlayer - arcSpread/2 + (i / (bulletCount-1)) * arcSpread;
+        const angle = angleToPredicted - arcSpread/2 + (i / (bulletCount-1)) * arcSpread;
         const bullet = {
           x: enemy.x,
           y: enemy.y,
-          vx: Math.cos(angle) * 3,
-          vy: Math.sin(angle) * 3,
+          vx: Math.cos(angle) * (bulletSpeed * 1.3), // Increased speed by 30%
+          vy: Math.sin(angle) * (bulletSpeed * 1.3), // Increased speed by 30%
           life: 100,
           kind: 'arc',
           dmg: 0.3 // Low damage for mid-game boss
@@ -1087,12 +1425,37 @@ function initEnemyAI() {
         GameState.ebullets.push(bullet);
       }
       
-      // Visual feedback - boss flashes cyan
+      // Visual feedback - boss flashes cyan and shows prediction
       enemy.twinEffect = 20;
       
       // Add attack animation
       enemy.attacking = true;
       enemy.attackFrame = 0;
+      
+      // Visual prediction indicator - shows where boss is aiming
+      if (window.ParticleSystem) {
+        // Create a small particle at predicted position to show where boss is aiming
+        window.ParticleSystem.create(predictedX, predictedY, 2, 10, 'twin');
+        
+        // Create a line effect from boss to predicted position (optional visual)
+        if (window.Renderer && window.Renderer.getContext) {
+          const ctx = window.Renderer.getContext();
+          if (ctx) {
+            // Store prediction line data for rendering
+            enemy.predictionLine = {
+              startX: enemy.x,
+              startY: enemy.y,
+              endX: predictedX,
+              endY: predictedY,
+              alpha: 0.6,
+              timer: 15
+            };
+          }
+        }
+        
+        // Add prediction warning effect - boss glows when predicting
+        enemy.predictionWarning = 25;
+      }
     },
 
     // Void Monarch AI: phases and powerful attacks
@@ -1187,7 +1550,7 @@ function initEnemyAI() {
       const spiralCount = 16; // Increased from 12
       for (let i = 0; i < spiralCount; i++) {
         const angle = (i / spiralCount) * Math.PI * 2;
-        const speed = 2.5 + (i % 4) * 0.5; // More varied speeds
+        const speed = 1 + (i % 4) * 0.25; // Much slower speeds (reduced by half)
         const bullet = {
           x: enemy.x,
           y: enemy.y,
@@ -1221,8 +1584,8 @@ function initEnemyAI() {
         const bullet = {
           x: enemy.x,
           y: enemy.y,
-          vx: Math.cos(angle) * 4.5,
-          vy: Math.sin(angle) * 4.5,
+          vx: Math.cos(angle) * 1,
+          vy: Math.sin(angle) * 1,
           life: 140,
           kind: 'cross',
           dmg: 0.5 // Moderate damage for final boss Phase 2
@@ -1249,7 +1612,7 @@ function initEnemyAI() {
       const bulletCount = 20; // Increased from 15
       for (let i = 0; i < bulletCount; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = 3 + Math.random() * 5; // Higher speeds
+        const speed = 1 + Math.random() * 0.5; // Same speed as Phase 1 (1.0-1.5)
         const bullet = {
           x: enemy.x,
           y: enemy.y,
@@ -1281,7 +1644,7 @@ function initEnemyAI() {
       const bulletCount = 16;
       for (let i = 0; i < bulletCount; i++) {
         const angle = (i / bulletCount) * Math.PI * 2;
-        const speed = 3.5; // Consistent speed for ring
+        const speed = 1; // Same speed as Phase 1
         const bullet = {
           x: enemy.x,
           y: enemy.y,
@@ -1313,7 +1676,7 @@ function initEnemyAI() {
       const bulletCount = 20;
       for (let i = 0; i < bulletCount; i++) {
         const angle = (i / bulletCount) * Math.PI * 2;
-        const speed = 2.5 + (i % 5) * 0.8; // Varying speeds for burst effect
+        const speed = 1 + (i % 5) * 0.25; // Same speed as Phase 1 (1.0-2.0)
         const bullet = {
           x: enemy.x,
           y: enemy.y,
@@ -1345,7 +1708,7 @@ function initEnemyAI() {
       const bulletCount = 32; // Massive bullet count
       for (let i = 0; i < bulletCount; i++) {
         const angle = (i / bulletCount) * Math.PI * 2;
-        const speed = 4 + Math.random() * 3; // High speeds
+        const speed = 1 + Math.random() * 0.5; // Same speed as Phase 1 (1.0-1.5)
         const bullet = {
           x: enemy.x,
           y: enemy.y,

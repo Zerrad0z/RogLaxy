@@ -66,6 +66,30 @@ const Renderer = (() => {
   
   // Draw the player
   function drawPlayer(player) {
+    // Shield effect - makes player 2x bigger
+    if (player.shieldEffect > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = '#4fc3f7';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      
+      // Draw shield bubble (2x player size)
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      
+      // Add shield glow effect
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#4fc3f7';
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+    
     // Eclipse effect
     if (player.eclipse > 0) {
       ctx.globalAlpha = 0.8;
@@ -119,7 +143,30 @@ const Renderer = (() => {
         break;
         
       case 'bomber':
-        ctx.fillStyle = '#fff';
+        // Show explosion buildup effect
+        if (enemy.exploding && enemy.explosionTimer > 0) {
+          const progress = (30 - enemy.explosionTimer) / 30;
+          const scale = enemy.explosionScale || 1;
+          
+          // Red glow effect
+          ctx.globalAlpha = 0.6;
+          ctx.fillStyle = '#ff4444';
+          ctx.beginPath();
+          ctx.arc(enemy.x, enemy.y, 8 * scale, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+          
+          // Pulsing outer ring
+          ctx.strokeStyle = '#ff0000';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(enemy.x, enemy.y, 12 * scale, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.lineWidth = 1;
+        }
+        
+        // Normal bomber appearance
+        ctx.fillStyle = enemy.exploding ? '#ff8888' : '#fff';
         ctx.beginPath();
         ctx.arc(enemy.x, enemy.y, 3, 0, Math.PI * 2);
         ctx.fill();
@@ -153,9 +200,31 @@ const Renderer = (() => {
         break;
         
       case 'tank':
-        pRect(enemy.x - 3, enemy.y - 3, 6, 6, '#fff');
-        pRect(enemy.x - 2, enemy.y - 2, 4, 4, '#000');
-        pRect(enemy.x - 1, enemy.y - 1, 2, 2, '#fff');
+        // Show slam attack effect
+        if (enemy.slamEffect > 0) {
+          // Shockwave rings
+          ctx.globalAlpha = 0.7;
+          ctx.strokeStyle = '#ffff00';
+          ctx.lineWidth = 2;
+          const rings = 3;
+          for (let i = 0; i < rings; i++) {
+            const radius = (30 - enemy.slamEffect) * 2 + i * 8;
+            ctx.beginPath();
+            ctx.arc(enemy.x, enemy.y, radius, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+          ctx.lineWidth = 1;
+        }
+        
+        // Tank appears larger when attacking
+        const size = enemy.attacking ? 8 : 6;
+        const innerSize = enemy.attacking ? 6 : 4;
+        const coreSize = enemy.attacking ? 4 : 2;
+        
+        pRect(enemy.x - size/2, enemy.y - size/2, size, size, '#fff');
+        pRect(enemy.x - innerSize/2, enemy.y - innerSize/2, innerSize, innerSize, '#000');
+        pRect(enemy.x - coreSize/2, enemy.y - coreSize/2, coreSize, coreSize, '#fff');
         break;
         
       case 'sniper':
@@ -398,6 +467,17 @@ const Renderer = (() => {
   
   // Draw Eclipse Twin boss
   function drawEclipseTwinBoss(enemy) {
+    // Prediction warning effect - boss glows when predicting movement
+    if (enemy.predictionWarning > 0) {
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = '#ff00ff';
+      pCircle(enemy.x, enemy.y, 12, '#ff00ff');
+      ctx.globalAlpha = 1;
+      
+      // Update prediction warning timer
+      enemy.predictionWarning--;
+    }
+    
     // Attack effect - flash cyan when attacking
     if (enemy.twinEffect > 0) {
       ctx.globalAlpha = 0.7;
@@ -435,6 +515,30 @@ const Renderer = (() => {
     pRect(enemy.x - 8, enemy.y - 10, 16, 2, '#555');
     const hpRatio = enemy.hp / enemy.maxHp;
     pRect(enemy.x - 8, enemy.y - 10, Math.max(0, 16 * hpRatio), 2, '#fff');
+    
+    // Draw prediction line when boss is aiming (shows where bullets will go)
+    if (enemy.predictionLine && enemy.predictionLine.timer > 0) {
+      ctx.save();
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = enemy.predictionLine.alpha;
+      ctx.setLineDash([5, 5]); // Dashed line effect
+      
+      ctx.beginPath();
+      ctx.moveTo(enemy.predictionLine.startX, enemy.predictionLine.startY);
+      ctx.lineTo(enemy.predictionLine.endX, enemy.predictionLine.endY);
+      ctx.stroke();
+      
+      // Reset line dash
+      ctx.setLineDash([]);
+      ctx.restore();
+      
+      // Update prediction line timer
+      enemy.predictionLine.timer--;
+      if (enemy.predictionLine.timer <= 0) {
+        delete enemy.predictionLine;
+      }
+    }
   }
   
   // Draw Void Monarch boss
@@ -613,6 +717,13 @@ const Renderer = (() => {
       ctx.globalAlpha = 0.3;
       pRect(bullet.x - 2, bullet.y - 2, 4, 4, '#ba68c8');
       ctx.globalAlpha = 1;
+    } else if (bullet.kind === 'mortar') {
+      // Larger explosive projectile with shadow
+      ctx.globalAlpha = 0.3;
+      pCircle(bullet.x + 2, bullet.y + 2, 3, '#333', true); // Shadow
+      ctx.globalAlpha = 1;
+      pCircle(bullet.x, bullet.y, 3, '#ff6600', true); // Main projectile
+      pCircle(bullet.x, bullet.y, 1, '#fff', true); // Highlight
     }
     
     ctx.restore();
@@ -830,6 +941,16 @@ const Renderer = (() => {
       case 'explosion':
         ctx.globalAlpha = particle.life / 18;
         pRect(particle.x - 1, particle.y - 1, 3, 3, '#ff5722');
+        break;
+        
+      case 'shockwave':
+        ctx.globalAlpha = particle.life / 45;
+        ctx.strokeStyle = '#ffff00';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.lineWidth = 1;
         break;
         
       // ===== NEW PARTICLE TYPES START HERE =====

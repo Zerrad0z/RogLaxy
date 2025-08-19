@@ -242,11 +242,40 @@ const InputHandler = {
       };
     }
     
-    // Catalogue button (disabled for now)
-    const catalogueBtn = Helpers.$('#catalogueBtn');
-    if (catalogueBtn) {
-      catalogueBtn.onclick = () => {
-        console.log('Catalogue coming soon!');
+    // Guide button (disabled for now)
+    const guideBtn = Helpers.$('#guideBtn');
+    if (guideBtn) {
+      guideBtn.onclick = () => {
+        UI.showGameGuide();
+      };
+    }
+    
+    // Back to menu button in guide
+    const backToMenuBtn = Helpers.$('#backToMenuBtn');
+    if (backToMenuBtn) {
+      backToMenuBtn.onclick = () => {
+        UI.showMainMenu();
+      };
+    }
+    
+    // Credits menu button
+    const creditsMenuBtn = Helpers.$('#creditsMenuBtn');
+    if (creditsMenuBtn) {
+      creditsMenuBtn.onclick = () => {
+        UI.showMainMenu();
+      };
+    }
+    
+    // Test credits button (temporary)
+    const testCreditsBtn = Helpers.$('#testCreditsBtn');
+    if (testCreditsBtn) {
+      testCreditsBtn.onclick = () => {
+        console.log('🧪 Test credits button clicked!');
+        if (window.UI && window.UI.showCredits) {
+          window.UI.showCredits();
+        } else {
+          console.error('❌ UI not available for test!');
+        }
       };
     }
   },
@@ -474,8 +503,8 @@ const InputHandler = {
     const oldX = player.x;
     const oldY = player.y;
     
-    player.x = Helpers.clamp(player.x + movement.x * speed, 8, 312);
-    player.y = Helpers.clamp(player.y + movement.y * speed, 8, 232);
+            player.x = Helpers.clamp(player.x + movement.x * speed, 8, 312);
+            player.y = Helpers.clamp(player.y + movement.y * speed, 8, 232);
     
     // Apply movement synergies
     SynergySystem.applyMovementSynergies(oldX, oldY, player.x, player.y);

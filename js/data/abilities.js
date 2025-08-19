@@ -88,7 +88,8 @@ const ABILITIES = [
         GameState.player.iTimer, 
         RelicSystem.hasRelic('PhaseGuard') ? 140 : 90
       );
-      AbilitiesLogic.createShieldEffect();
+      // Set shield effect for visual feedback
+      GameState.player.shieldEffect = 90; // 1.5 seconds at 60fps
     }
   },
   
@@ -280,8 +281,8 @@ const AbilitiesLogic = {
     const oldY = GameState.player.y;
     
     // Update player position with bounds checking
-    GameState.player.x = Helpers.clamp(GameState.player.x + dx, 8, 312);
-    GameState.player.y = Helpers.clamp(GameState.player.y + dy, 8, 232);
+            GameState.player.x = Helpers.clamp(GameState.player.x + dx, 8, 312);
+            GameState.player.y = Helpers.clamp(GameState.player.y + dy, 8, 232);
     GameState.player.iTimer = Math.max(GameState.player.iTimer, 50);
     
     // Handle StormWalk synergy effect

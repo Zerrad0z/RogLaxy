@@ -129,6 +129,11 @@ const CollisionSystem = {
         }
       }
 
+      // Apply gravity to mortar bullets
+      if (bullet.kind === 'mortar' && bullet.gravity) {
+        bullet.vy += bullet.gravity;
+      }
+      
       // Move bullet
       bullet.x += bullet.vx;
       bullet.y += bullet.vy;

@@ -68,7 +68,7 @@ const HUD = {
       keyHint.textContent = CONSTANTS.SLOT_KEYS[i];
       slot.appendChild(keyHint);
       
-      if (ability && ability.cdLeft > 0) {
+      if (ability && ability.cdLeft > 0 && typeof ability.cdLeft === 'number') {
         const cd = document.createElement('div');
         cd.className = 'cd';
         cd.textContent = ability.cdLeft.toFixed(1);

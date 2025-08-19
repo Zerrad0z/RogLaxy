@@ -11,11 +11,92 @@
     <!-- Main Menu -->
     <div id="mainMenu" class="menu-container">
         <h1 class="game-title">RogLaxy</h1>
+        <div class="version">v 0.9123</div>
         <div class="menu-buttons">
             <button class="menu-btn" id="playBtn">PLAY</button>
-            <button class="menu-btn" id="catalogueBtn" disabled>CATALOGUE</button>
+            <button class="menu-btn" id="guideBtn">GUIDE</button>
         </div>
-        <div class="menu-tip">Coming Soon: Catalogue</div>
+        <div class="menu-tip">Click GUIDE to learn game mechanics!</div>
+    </div>
+
+    <!-- Game Guide -->
+    <div id="gameGuide" class="guide-container hidden">
+        <h2 class="guide-title">ROGLAXY GAME GUIDE</h2>
+        
+        <!-- Movement Section -->
+        <div class="guide-section">
+            <h3>MOVEMENT CONTROLS</h3>
+            <div class="control-grid">
+                <div class="control-item">
+                    <div class="control-keys">
+                        <div class="key">↑</div>
+                    </div>
+                    <div class="control-label">Move Up</div>
+                </div>
+                <div class="control-item">
+                    <div class="control-keys">
+                        <div class="key">←</div>
+                    </div>
+                    <div class="control-label">Move Left</div>
+                </div>
+                <div class="control-item">
+                    <div class="control-keys">
+                        <div class="key">→</div>
+                    </div>
+                    <div class="control-label">Move Right</div>
+                </div>
+                <div class="control-item">
+                    <div class="control-keys">
+                        <div class="key">↓</div>
+                    </div>
+                    <div class="control-label">Move Down</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Abilities Section -->
+        <div class="guide-section">
+            <h3>ABILITIES</h3>
+            <div class="ability-grid">
+                <div class="ability-item">
+                    <div class="ability-icon">⛨</div>
+                    <div class="ability-desc">protective barrier</div>
+                    <div class="ability-key">Q</div>
+                </div>
+                <div class="ability-item">
+                    <div class="ability-icon">▼</div>
+                    <div class="ability-desc">Ground slam attack</div>
+                    <div class="ability-key">W</div>
+                </div>
+                <div class="ability-item">
+                    <div class="ability-icon">⚡</div>
+                    <div class="ability-desc">Chain lightning bolt</div>
+                    <div class="ability-key">E</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Synergies Section -->
+        <div class="guide-section">
+            <h3>SYNERGIES</h3>
+            <div class="synergy-grid">
+                <div class="synergy-item">
+                    <div class="synergy-name">Aegis</div>
+                    <div class="synergy-desc">Shield + Heal = Extended invulnerability</div>
+                </div>
+                <div class="synergy-item">
+                    <div class="synergy-name">Thunderquake</div>
+                    <div class="synergy-desc">Quake + Lightning = Stun + Chain damage</div>
+                </div>
+                <div class="synergy-item">
+                    <div class="synergy-name">Frostquake</div>
+                    <div class="synergy-desc">Quake + Ice = Explosion + Slow effect</div>
+                </div>
+            </div>
+        </div>
+
+
+        <button class="guide-btn" id="backToMenuBtn">BACK TO MENU</button>
     </div>
 
     <!-- Game Container -->
@@ -34,10 +115,35 @@
                 </div>
             </div>
             <div id="statusMessage"></div>
+            
+            <!-- Credits Screen -->
+            <div id="credits" class="hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 280px; height: 200px; background: #ff0000; border: 3px solid #00ff00; z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                <div class="credits-content" style="color: #ffffff; text-align: center; font-size: 16px;">
+                    <h1 style="color: #ffffff; margin: 0 0 10px 0;">🎉 CONGRATULATIONS! 🎉</h1>
+                    <div style="color: #ffffff; margin-bottom: 15px;">You have defeated the Void Monarch</div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <h2 style="color: #ffffff; margin: 0 0 10px 0;">CREDITS</h2>
+                        <div style="margin-bottom: 10px;">
+                            <div style="color: #cccccc; font-size: 12px;">GAME DESIGN & DEVELOPMENT</div>
+                            <div style="color: #ffffff; font-weight: bold;">OZ</div>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <div style="color: #cccccc; font-size: 12px;">SPECIAL THANKS</div>
+                            <div style="color: #ffffff; font-weight: bold;">Thank you for playing ROGLAXY!</div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn" id="creditsMenuBtn" style="background: #000000; color: #ffffff; border: 2px solid #ffffff; padding: 8px 16px;">Main Menu</button>
+                </div>
+            </div>
         </div>
         
         <div id="bar"></div>
         <div class="tip">Move: Arrows · Cast: Q/W/E/LMB · Pause: P</div>
+        
+        <!-- Temporary test button for credits -->
+        <button id="testCreditsBtn" style="position: absolute; top: 10px; right: 10px; z-index: 2000; background: #ff0; color: #000; border: 1px solid #000; padding: 5px;">TEST CREDITS</button>
 
         <!-- Ability draft -->
         <div id="draft" class="hidden">
