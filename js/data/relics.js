@@ -37,11 +37,11 @@ const RELICS = [
   {
     name: 'Heart Sigil',
     icon: '♥',
-    desc: '+2 max HP & heal 2',
+    desc: '+1 max HP & heal 1',
     rarity: 'common',
     apply() {
-      GameState.player.hpMax += 2;
-      Combat.heal(2);
+      GameState.player.hpMax += 1;
+      Combat.heal(1);
       GameState.relics.push(this);
       UI.showStatusMessage('Heart Sigil acquired: Max health increased!');
     }
@@ -49,7 +49,7 @@ const RELICS = [
   
   {
     name: 'Sharper',
-    icon: '†',
+    icon: '⚔',
     desc: '+1 ability damage',
     rarity: 'uncommon',
     apply() {

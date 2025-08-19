@@ -99,7 +99,7 @@ const ABILITIES = [
     cd: 6.0,
     tags: ['Support'],
     cast() {
-      Combat.heal(2);
+      Combat.heal(1);
     }
   },
   

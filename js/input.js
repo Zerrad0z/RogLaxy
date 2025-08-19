@@ -258,26 +258,9 @@ const InputHandler = {
       };
     }
     
-    // Credits menu button
-    const creditsMenuBtn = Helpers.$('#creditsMenuBtn');
-    if (creditsMenuBtn) {
-      creditsMenuBtn.onclick = () => {
-        UI.showMainMenu();
-      };
-    }
+
     
-    // Test credits button (temporary)
-    const testCreditsBtn = Helpers.$('#testCreditsBtn');
-    if (testCreditsBtn) {
-      testCreditsBtn.onclick = () => {
-        console.log('🧪 Test credits button clicked!');
-        if (window.UI && window.UI.showCredits) {
-          window.UI.showCredits();
-        } else {
-          console.error('❌ UI not available for test!');
-        }
-      };
-    }
+
   },
   
   // Initialize draft screen handlers

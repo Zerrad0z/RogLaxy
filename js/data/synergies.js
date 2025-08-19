@@ -143,7 +143,7 @@ const SynergySystem = {
         });
         
         AudioSystem.synergy();
-        UI.showStatusMessage(`${synergy.name} activated!`);
+        // UI.showStatusMessage(`${synergy.name} activated!`); // Removed popup message
         
         // Apply immediate synergy effects
         this.applySynergyActivation(synergy.name, newCast);

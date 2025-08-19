@@ -207,7 +207,7 @@ function initEnemySpawner() {
         stun: 0,
         kind: 'bomber',
         spd: type.baseSpeed * 1.5, // Increased speed
-        aggroRange: 80, // Aggro range for explosion
+        aggroRange: 30, // Aggro range for explosion (reduced to prevent early explosion)
         exploding: false,
         explosionTimer: 0
       });
@@ -693,10 +693,33 @@ function initEnemyAI() {
       const dy = player.y - enemy.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
+      // Enemy separation to prevent stacking
+      let separationX = 0;
+      let separationY = 0;
+      const separationRadius = 25; // Minimum distance between enemies
+      
+      GameState.enemies.forEach(otherEnemy => {
+        if (otherEnemy !== enemy) {
+          const otherDx = enemy.x - otherEnemy.x;
+          const otherDy = enemy.y - otherEnemy.y;
+          const otherDist = Math.sqrt(otherDx * otherDx + otherDy * otherDy);
+          
+          if (otherDist < separationRadius && otherDist > 0) {
+            const force = (separationRadius - otherDist) / separationRadius;
+            separationX += (otherDx / otherDist) * force;
+            separationY += (otherDy / otherDist) * force;
+          }
+        }
+      });
+
       // Normalize direction
       if (dist !== 0) {
-        enemy.x += (dx / dist) * enemy.spd;
-        enemy.y += (dy / dist) * enemy.spd;
+        // Apply separation force (stronger than player attraction to prevent clustering)
+        const moveX = (dx / dist) * enemy.spd * 0.7 + separationX * 1.5;
+        const moveY = (dy / dist) * enemy.spd * 0.7 + separationY * 1.5;
+        
+        enemy.x += moveX;
+        enemy.y += moveY;
       }
 
       // Reduce cooldowns

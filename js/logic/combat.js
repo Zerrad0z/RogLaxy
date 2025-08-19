@@ -41,14 +41,14 @@ const Combat = {
             window.DraftUI.showLegendaryRelicDraft();
           }
         } else if (enemy.kind === 'VoidMonarch') {
-          // Show credits screen for final boss victory!
-          console.log('🎉 VOID MONARCH DEFEATED! Showing credits in 1 second...');
+          // Show victory message for final boss victory!
+          console.log('🎉 VOID MONARCH DEFEATED! Showing victory message in 1 second...');
           setTimeout(() => {
-            console.log('🌟 Showing credits screen now!');
-            if (window.UI && window.UI.showCredits) {
-              window.UI.showCredits();
+            console.log('🌟 Showing victory message now!');
+            if (window.UI && window.UI.showVictory) {
+              window.UI.showVictory();
             } else {
-              console.error('❌ UI.showCredits not available!');
+              console.error('❌ UI.showVictory not available!');
             }
           }, 1000); // 1 second delay for dramatic effect
         }
@@ -91,7 +91,10 @@ const Combat = {
   },
   
   heal(amount) {
-    GameState.player.hp = Math.min(GameState.player.hpMax, GameState.player.hp + amount);
+    // Only heal if not at full HP
+    if (GameState.player.hp < GameState.player.hpMax) {
+      GameState.player.hp = Math.min(GameState.player.hpMax, GameState.player.hp + amount);
+    }
     
     if (SynergySystem.hasSynergyActive('LifeSpark')) {
       for (let i = 0; i < 3; i++) {

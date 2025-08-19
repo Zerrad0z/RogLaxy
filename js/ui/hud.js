@@ -9,7 +9,7 @@ const HUD = {
     const currentHp = Math.max(0, Math.min(player.hp, player.hpMax));
     const missingHp = Math.max(0, player.hpMax - currentHp);
     
-    Helpers.$('#hp').textContent = `HP ${'♥'.repeat(currentHp)}${'·'.repeat(missingHp)}`;
+    Helpers.$('#hp').textContent = `${'♥'.repeat(currentHp)}${'·'.repeat(missingHp)}`;
     Helpers.$('#room').textContent = `Room ${GameState.room}/${GameState.maxRooms}`;
     
     this.updateBossBar();

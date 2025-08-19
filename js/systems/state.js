@@ -16,8 +16,8 @@ window.GameState = {
     x: 160,
     y: 120,
     r: 4,
-    hp: 8,
-    hpMax: 8,
+    hp: 5,
+    hpMax: 5,
     spd: 1.2,
     iTimer: 0,  // Invulnerability timer
     eclipse: 0,  // Eclipse synergy timer
@@ -74,8 +74,8 @@ window.GameState = {
       x: 160,
       y: 120,
       r: 4,
-      hp: 8,
-      hpMax: 8,
+      hp: 5,
+      hpMax: 5,
       spd: 1.2,
       iTimer: 0,
       eclipse: 0,
@@ -127,14 +127,14 @@ window.GameState = {
     switch(bossType) {
       case 'Warden':
         this.player.hpMax += 1;
-        this.player.hp = Math.min(this.player.hp + 2, this.player.hpMax);
+        this.player.hp = Math.min(this.player.hp + 1, this.player.hpMax);
         UI.showStatusMessage('Warden defeated! +1 Max HP!');
         break;
         
       case 'EclipseTwin':
-        this.player.hpMax += 2;
-        this.player.hp = this.player.hpMax;
-        UI.showStatusMessage('Eclipse Twin defeated! +2 Max HP & Full heal!');
+        this.player.hpMax += 1;
+        this.player.hp = Math.min(this.player.hp + 1, this.player.hpMax);
+        UI.showStatusMessage('Eclipse Twin defeated! +1 Max HP!');
         break;
         
       case 'VoidMonarch':
